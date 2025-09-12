@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 
+from app.api import sessions
+from app.api import products
 
-# Crear la app FastAPI
+
+
 app = FastAPI(
     title="Pizzetos",
     description="Backend de pizzetos bien chingon",
@@ -12,4 +15,9 @@ app = FastAPI(
 
 @app.get("/")
 def root():
-    return {"message": "API funcionando correctamente ✅"}
+    return {"message": "API funcionando correctamente"}
+
+
+
+app.include_router(sessions.router, prefix="/login", tags=["sessions"])
+app.include_router(products.router, prefix="/product", tags=["products"])
