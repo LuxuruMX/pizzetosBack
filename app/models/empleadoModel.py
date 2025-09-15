@@ -9,3 +9,5 @@ class Empleados(SQLModel, table=True):
     telefono: int = Field(ge=10000000, le=9999999999)
     id_ca: int = Field(foreign_key="Cargos.id_ca")
     id_suc: int = Field(foreign_key="Sucursal.id_suc")
+    nickName: str = Field(min_length=5, max_length=50)
+    password: str

@@ -6,6 +6,8 @@ class createEmpleado(BaseModel):
     telefono: int = Field(ge=10000000, le=9999999999)
     id_ca: int
     id_suc: int
+    nickName: str = Field(min_length=5, max_length=50)
+    password: str
 
 class readEmpleado(BaseModel):
     id_emp: int
@@ -14,3 +16,16 @@ class readEmpleado(BaseModel):
     telefono: int
     id_ca: int
     id_suc: int
+    nickName: str
+    password: str
+
+class readEmpleadoNoPass(BaseModel):
+    id_emp: int
+    nombre: str
+    direccion: str
+    telefono: int
+    id_ca: int
+    id_suc: int
+    nickName: str
+    class Config:
+          orm_mode = True
