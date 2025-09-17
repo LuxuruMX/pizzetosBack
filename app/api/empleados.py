@@ -3,22 +3,23 @@ from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
 from app.models.empleadoModel import Empleados
-from app.schemas.empleadoSchema import readEmpleado, createEmpleado
+from app.schemas.empleadoSchema import readEmpleadoNoPass, createEmpleado
 from argon2 import PasswordHasher
+from app.core.dependency import verify_token
 
 
 router = APIRouter()
 ph = PasswordHasher()
 
-@router.get("/", response_model=List[readEmpleado])
-def get_empleados(session: Session = Depends(get_session)):
+@router.get("/", response_model=List[readEmpleadoNoPass])
+def get_empleados(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = select(Empleados)
     results = session.exec(statement).all()
     return results
 
 
 @router.post("/agregar")
-def addEmpleado(empleado: createEmpleado, session: Session = Depends(get_session)):
+def addEmpleado(empleado: createEmpleado, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     hashed_password = ph.hash(empleado.password)
     db_empleado = Empleados(
         nombre=empleado.nombre,
