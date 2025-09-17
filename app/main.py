@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from app.db.session import init_db
 
-from app.api import sessions
+
+from app.api import login
 from app.api import products
 from app.api import movements
 from app.api import empleados
@@ -22,8 +23,7 @@ def root():
     return {"message": "API funcionando correctamente"}
 
 
-
-app.include_router(sessions.router, prefix="/login", tags=["sessions"])
+app.include_router(login.router, prefix="/login", tags=["login"])
 app.include_router(products.router, prefix="/product", tags=["products"])
 app.include_router(movements.router, prefix="/movements", tags=["movements"])
 app.include_router(empleados.router, prefix="/empleados", tags=["personal"])

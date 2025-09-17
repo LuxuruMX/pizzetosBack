@@ -28,4 +28,4 @@ class readEmpleadoNoPass(BaseModel):
     id_suc: int
     nickName: str
     class Config:
-          orm_mode = True
+        orm_mode = True

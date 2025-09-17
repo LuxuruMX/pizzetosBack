@@ -6,6 +6,7 @@ from app.models.empleadoModel import Empleados
 from app.schemas.empleadoSchema import readEmpleado, createEmpleado
 from argon2 import PasswordHasher
 
+
 router = APIRouter()
 ph = PasswordHasher()
 
@@ -16,7 +17,7 @@ def get_empleados(session: Session = Depends(get_session)):
     return results
 
 
-@router.post("/agregar", response_model=createEmpleado)
+@router.post("/agregar")
 def addEmpleado(empleado: createEmpleado, session: Session = Depends(get_session)):
     hashed_password = ph.hash(empleado.password)
     db_empleado = Empleados(
@@ -31,4 +32,4 @@ def addEmpleado(empleado: createEmpleado, session: Session = Depends(get_session
     session.add(db_empleado)
     session.commit()
     session.refresh(db_empleado)
-    return "empleado registrado"
+    return {"message" : "usuario registrado"}
