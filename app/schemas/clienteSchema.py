@@ -10,7 +10,7 @@ class createCliente(BaseModel):
     
 
 class readCliente(BaseModel):
-    id_cliente: int
+    id_clie: int
     nombre: str
     apellido: str
     direccion: str

@@ -27,8 +27,8 @@ def createCliente(cliente: createCliente, session: Session = Depends(get_session
     session.refresh(cliente)
     return {"message" : "cliente registrado"}
 
-@router.get("/buscar", response_model=readCliente)
-def searchCliente(telefono: int, cliente: readCliente, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+@router.get("/buscar/{telefono}", response_model=readCliente)
+def searchCliente(telefono: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement=select(Cliente).where(Cliente.telefono == telefono)
-    results = session.exec(statement).all()
+    results = session.exec(statement).first()
     return results
