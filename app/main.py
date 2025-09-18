@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.db.session import init_db
+from fastapi.middleware.cors import CORSMiddleware
 
 
 from app.api import login
@@ -12,6 +13,15 @@ app = FastAPI(
     description="Backend de pizzetos bien chingon",
     version="0.0.1"
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # o ["*"] para todos los orígenes
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.on_event("startup")
 def on_startup():
