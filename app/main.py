@@ -3,7 +3,7 @@ from app.db.session import init_db
 from fastapi.middleware.cors import CORSMiddleware
 
 
-from app.api import login, products, movements, empleados, clientes
+from app.api import login, products, movements, empleados, clientes, ventas
 
 
 app = FastAPI(
@@ -36,3 +36,4 @@ app.include_router(products.router, prefix="/product", tags=["products"])
 app.include_router(movements.router, prefix="/movements", tags=["movements"])
 app.include_router(empleados.router, prefix="/empleados", tags=["personal"])
 app.include_router(clientes.router, prefix="/clientes", tags=["clientes"])
+app.include_router(ventas.router, prefix="/ventas", tags=["ventas"])
