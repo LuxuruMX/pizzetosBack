@@ -1,5 +1,5 @@
 from sqlmodel import SQLModel, create_engine, Session
-from app.models import empleadoModel, clienteModel, sucursalModel, ventaModel
+from app.models import empleadoModel, clienteModel, sucursalModel, ventaModel, detallesModel, pagosModel, gastosModel, alitasModel, barraModel, categoriaModel, costillasModel, especialidadModel, hamburguesasModel, magnoModelo, papasModel, paquetesModel, mariscosModel, rectangularModel, refrescosModel, spaguettyModel, tamanosPizzasModel, tamanosRefrescosModel
 
 DATABASE_URL = "mysql+pymysql://root:@localhost:3306/pizzetos_db"
 

@@ -6,7 +6,6 @@ from decimal import Decimal
 class createVenta(BaseModel):
     id_suc: int
     id_cliente: int
-    total: Decimal
 
 
 class readVenta(BaseModel):

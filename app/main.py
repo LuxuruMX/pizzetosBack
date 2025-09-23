@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from app.db.session import init_db
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.core.dependency import verify_token
 
 from app.api import login, products, movements, empleados, clientes, ventas
 
@@ -26,9 +26,10 @@ def on_startup():
     init_db()
 
 
-@app.get("/", tags=["Home"])
-def root():
-    return {"message": "API funcionando correctamente"}
+@app.get("/check")
+def check_token(username: str = Depends(verify_token)):
+    return {"valid": True, "username": username.username}
+
 
 
 app.include_router(login.router, prefix="/login", tags=["login"])

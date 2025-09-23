@@ -8,3 +8,5 @@ class Gastos(SQLModel, table=True):
     id_suc: int
     nombre: str = Field(min_length=3, max_length=255)
     precio: Decimal
+    fecha: Optional[str] = None
+    cantidad: Decimal

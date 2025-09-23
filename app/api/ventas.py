@@ -4,6 +4,8 @@ from typing import List
 from app.db.session import get_session
 from app.models.ventaModel import Venta
 from app.schemas.ventaSchema import readVenta, createVenta
+from app.models.detallesModel import DetalleVenta
+from app.schemas.detallesSchema import createDetalleVenta
 from app.core.dependency import verify_token
 
 
