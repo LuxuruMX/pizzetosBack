@@ -58,6 +58,39 @@ def getAlitas(session: Session = Depends(get_session), username: str = Depends(v
     ) for r in results]
     
     
+@router.get("/alitas/{id_alis}", response_model=readAlitasOut)
+def getAlitasById(id_alis: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    statement = (
+        select(Alita.id_alis, Alita.orden, Alita.precio, CategoriasProd.descripcion.label("categoria"))
+        .join(CategoriasProd, Alita.id_cat == CategoriasProd.id_cat)
+        .where(Alita.id_alis == id_alis)
+    )
+
+    result = session.exec(statement).first()
+    if result:
+        return readAlitasOut(
+            id_alis=result.id_alis,
+            orden=result.orden,
+            precio=result.precio,
+            categoria=result.categoria
+        )
+    return {"message": "Alitas no encontradas"}
+    
+    
+@router.put("/actualizar-alitas/{id_alis}")
+def updateAlitas(id_alis: int, alitas: createAlitas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    alita = session.get(Alita, id_alis)
+    if not alita:
+        return {"message": "Alitas no encontradas"}
+    alita.orden = alitas.orden
+    alita.precio = alitas.precio
+    alita.id_cat = alitas.id_cat
+    session.add(alita)
+    session.commit()
+    session.refresh(alita)
+    return {"message": "Alitas actualizadas correctamente"}    
+
+    
 @router.get("/categoria-alitas")
 def getCategoriaAlitas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement=select(CategoriasProd)
@@ -76,3 +109,12 @@ def createAlitas(alitas: createAlitas, session: Session = Depends(get_session), 
     session.commit()
     session.refresh(alita)
     return {"message" : "Alitas registradas correctamente"}
+
+@router.delete("/eliminar-alitas/{id_alis}")
+def deleteAlitas(id_alis: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    alita = session.get(Alita, id_alis)
+    if not alita:
+        return {"message": "Alitas no encontradas"}
+    session.delete(alita)
+    session.commit()
+    return {"message": "Alitas eliminadas correctamente"}
