@@ -12,3 +12,11 @@ class readAlitas(BaseModel):
     orden: str
     precio: Decimal
     id_cat: int
+    
+    
+    
+class readAlitasOut(BaseModel):
+    id_alis: int
+    orden: str
+    precio: Decimal
+    categoria: str
