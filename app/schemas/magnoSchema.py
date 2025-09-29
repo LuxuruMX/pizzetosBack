@@ -11,3 +11,9 @@ class readMagno(BaseModel):
     id_especialidad: int
     id_refresco: int
     precio: Decimal
+    
+class readMagnoOut(BaseModel):
+    id_magno: int
+    especialidad: str
+    refresco: str
+    precio: Decimal

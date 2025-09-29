@@ -17,6 +17,12 @@ from app.schemas.especialidadSchema import createEspecialidad, readEspecialidad
 from app.models.hamburguesasModel import hamburguesas
 from app.schemas.hamburguesasSchema import createHamburguesas, readHamburguesasOut
 
+#from app.models.magnoModel import magno
+#from app.schemas.magnoSchema import createMagno, readMagnoOut
+
+from app.models.refrescosModel import refrescos
+from app.schemas.refrescosSchema import createRefrescos, readRefrescosOut
+
 from app.models.categoriaModel import categoria as CategoriasProd
 
 
@@ -306,9 +312,23 @@ def createHamburguesa(hamburguesa_data: createHamburguesas, session: Session = D
 
 @router.delete("/eliminar-hamburguesa/{id_hamb}", tags=["Hamburguesas"])
 def deleteHamburguesa(id_hamb: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    
     hamburguesa_item = session.get(hamburguesas, id_hamb)
     if not hamburguesa_item:
         return {"message": "Hamburguesa no encontrada"}
     session.delete(hamburguesa_item)
     session.commit()
     return {"message": "Hamburguesa eliminada correctamente"}
+
+
+#==============================================================================================================#
+####################################Rutas para detalles de Magno################################################
+#==============================================================================================================#
+
+#temporalmente deshabilitado
+
+
+#==============================================================================================================#
+#################################Rutas para detalles de Refrescos###############################################
+#==============================================================================================================#
+
