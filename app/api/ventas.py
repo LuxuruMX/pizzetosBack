@@ -14,6 +14,9 @@ from app.schemas.costillasSchema import readCostillasOut, createCostillas
 from app.models.especialidadModel import especialidad
 from app.schemas.especialidadSchema import createEspecialidad, readEspecialidad
 
+from app.models.hamburguesasModel import hamburguesas
+from app.schemas.hamburguesasSchema import createHamburguesas, readHamburguesasOut
+
 from app.models.categoriaModel import categoria as CategoriasProd
 
 
@@ -236,3 +239,76 @@ def deleteEspecialidad(id_esp: int, session: Session = Depends(get_session), use
     session.commit()
     return {"message": "Especialidad eliminada correctamente"}
 
+
+#==============================================================================================================#
+##############################Rutas para detalles de Hamburguesas###############################################
+#==============================================================================================================#
+
+@router.get("/hamburguesas", response_model=List[readHamburguesasOut] ,tags=["Hamburguesas"])
+def getHamburguesas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    statement=(
+        select(hamburguesas.id_hamb, hamburguesas.paquete, hamburguesas.precio, CategoriasProd.descripcion.label("categoria"))
+        .join(CategoriasProd, hamburguesas.id_cat == CategoriasProd.id_cat)
+    )
+    results = session.exec(statement).all()
+    return [readHamburguesasOut(
+        id_hamb=r.id_hamb,
+        paquete=r.paquete,
+        precio=r.precio,
+        categoria=r.categoria
+    ) for r in results]
+
+@router.get("/hamburguesas/{id_hamb}", response_model=readHamburguesasOut, tags=["Hamburguesas"])
+def getHamburguesaById(id_hamb: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    statement = (
+        select(hamburguesas.id_hamb, hamburguesas.paquete, hamburguesas.precio, CategoriasProd.descripcion.label("categoria"))
+        .join(CategoriasProd, hamburguesas.id_cat == CategoriasProd.id_cat)
+        .where(hamburguesas.id_hamb == id_hamb)
+    )
+
+    result = session.exec(statement).first()
+    if result:
+        return readHamburguesasOut(
+            id_hamb=result.id_hamb,
+            paquete=result.paquete,
+            precio=result.precio,
+            categoria=result.categoria
+        )
+    return {"message": "Hamburguesa no encontrada"}
+
+@router.put("/actualizar-hamburguesa/{id_hamb}", tags=["Hamburguesas"])
+def updateHamburguesa(id_hamb: int, hamburguesa_data: createHamburguesas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    hamburguesa_item = session.get(hamburguesas, id_hamb)
+    if not hamburguesa_item:
+        return {"message": "Hamburguesa no encontrada"}
+    
+    hamburguesa_item.paquete = hamburguesa_data.paquete
+    hamburguesa_item.precio = hamburguesa_data.precio
+    hamburguesa_item.id_cat = hamburguesa_data.id_cat
+    
+    session.add(hamburguesa_item)
+    session.commit()
+    session.refresh(hamburguesa_item)
+    
+    return {"message": "Hamburguesa actualizada correctamente"}
+
+@router.post("/crear-hamburguesa", tags=["Hamburguesas"])
+def createHamburguesa(hamburguesa_data: createHamburguesas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    nueva_hamburguesa = hamburguesas(
+        paquete= hamburguesa_data.paquete,
+        precio= hamburguesa_data.precio,
+        id_cat= hamburguesa_data.id_cat
+    )
+    session.add(nueva_hamburguesa)
+    session.commit()
+    session.refresh(nueva_hamburguesa)
+    return {"message": "Hamburguesa registrada correctamente"}
+
+@router.delete("/eliminar-hamburguesa/{id_hamb}", tags=["Hamburguesas"])
+def deleteHamburguesa(id_hamb: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    hamburguesa_item = session.get(hamburguesas, id_hamb)
+    if not hamburguesa_item:
+        return {"message": "Hamburguesa no encontrada"}
+    session.delete(hamburguesa_item)
+    session.commit()
+    return {"message": "Hamburguesa eliminada correctamente"}

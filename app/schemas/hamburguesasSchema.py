@@ -12,3 +12,9 @@ class readHamburguesas(BaseModel):
     paquete: str
     precio: Decimal
     id_cat: int
+    
+class readHamburguesasOut(BaseModel):
+    id_hamb: int
+    paquete: str
+    precio: Decimal
+    categoria: str
