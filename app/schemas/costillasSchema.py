@@ -16,3 +16,9 @@ class readCostillas(BaseModel):
 
     class Config:
         orm_mode = True
+        
+class readCostillasOut(BaseModel):
+    id_cos: int
+    orden: str
+    precio: Decimal
+    categoria: str
