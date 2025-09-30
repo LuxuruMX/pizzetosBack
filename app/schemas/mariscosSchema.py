@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from decimal import Decimal
 
 
 class createMariscos(BaseModel):
@@ -14,3 +13,11 @@ class readMariscos(BaseModel):
     descripcion: str
     id_tamañop: int
     id_cat: int
+    
+class readMariscosOut(BaseModel):
+    id_maris: int
+    nombre: str
+    descripcion: str
+    tamaño: str
+    categoria: str
+    

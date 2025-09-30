@@ -5,79 +5,92 @@ from app.db.session import get_session
 from app.core.dependency import verify_token
 
 from app.models.mariscosModel import mariscos
-from app.schemas.alitasSchema import readAlitasOut, createAlitas
+from app.schemas.mariscosSchema import readMariscosOut, createMariscos
 
 from app.models.categoriaModel import categoria as CategoriasProd
 from app.models.tamanosPizzasModel import tamanosPizzas
 
 router = APIRouter()
 
-@router.get("/", response_model=List[readAlitasOut])
-def getMariscos(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+@router.get("/",response_model=List[readMariscosOut])
+def get_mariscos(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
-        select(mariscos.id_maris, mariscos.nombre, mariscos.descripcion, CategoriasProd.descripcion.label("categoria"), tamanosPizzas.tamano.label("tamaño"))
-        .join(CategoriasProd, mariscos.id_cat == CategoriasProd.id_cat)
+        select(
+            mariscos.id_maris,
+            mariscos.nombre,
+            mariscos.descripcion,
+            tamanosPizzas.tamano.label("tamaño"),
+            CategoriasProd.descripcion.label("categoria")
+        )
         .join(tamanosPizzas, mariscos.id_tamañop == tamanosPizzas.id_tamañop)
+        .join(CategoriasProd, mariscos.id_cat == CategoriasProd.id_cat)
     )
-
     results = session.exec(statement).all()
-    return [readAlitasOut(
-        id_alis=r.id_maris,
-        orden=r.nombre,
-        precio=r.descripcion,
-        categoria=r.categoria + " - " + r.tamaño
+    return [readMariscosOut(
+        id_maris=r.id_maris,
+        nombre=r.nombre,
+        descripcion=r.descripcion,
+        tamaño=r.tamaño,
+        categoria=r.categoria
     ) for r in results]
-    
-@router.get("/{id_maris}", response_model=readAlitasOut)
-def getMariscosById(id_maris: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+
+@router.get("/{id_maris}", response_model=readMariscosOut)
+def get_mariscos_by_id(id_maris: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
-        select(mariscos.id_maris, mariscos.nombre, mariscos.descripcion, CategoriasProd.descripcion.label("categoria"), tamanosPizzas.descripcion.label("tamaño"))
-        .join(CategoriasProd, mariscos.id_cat == CategoriasProd.id_cat)
+        select(
+            mariscos.id_maris,
+            mariscos.nombre,
+            mariscos.descripcion,
+            tamanosPizzas.tamano.label("tamaño"),
+            CategoriasProd.descripcion.label("categoria")
+        )
         .join(tamanosPizzas, mariscos.id_tamañop == tamanosPizzas.id_tamañop)
+        .join(CategoriasProd, mariscos.id_cat == CategoriasProd.id_cat)
         .where(mariscos.id_maris == id_maris)
     )
-
     result = session.exec(statement).first()
     if result:
-        return readAlitasOut(
-            id_alis=result.id_maris,
-            orden=result.nombre,
-            precio=result.descripcion,
-            categoria=result.categoria + " - " + result.tamaño
+        return readMariscosOut(
+            id_maris=result.id_maris,
+            nombre=result.nombre,
+            descripcion=result.descripcion,
+            tamaño=result.tamaño,
+            categoria=result.categoria
         )
     return {"message": "Mariscos no encontrados"}
 
 @router.put("/actualizar-mariscos/{id_maris}")
-def updateMariscos(id_maris: int, mariscos: createAlitas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
-    maris = session.get(mariscos, id_maris)
-    if not maris:
+def update_mariscos(id_maris: int, mariscos_data: createMariscos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    marisco = session.get(mariscos, id_maris)
+    if not marisco:
         return {"message": "Mariscos no encontrados"}
-    maris.nombre = mariscos.orden
-    maris.descripcion = mariscos.precio
-    maris.id_cat = mariscos.id_cat
-    session.add(maris)
+    marisco.nombre = mariscos_data.nombre
+    marisco.descripcion = mariscos_data.descripcion
+    marisco.id_tamañop = mariscos_data.id_tamañop
+    marisco.id_cat = mariscos_data.id_cat
+    session.add(marisco)
     session.commit()
-    session.refresh(maris)
+    session.refresh(marisco)
     return {"message": "Mariscos actualizados correctamente"}
 
 @router.post("/crear-mariscos")
-def createMariscos(maris: createAlitas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
-    new_maris = mariscos(
-        nombre=maris.orden,
-        descripcion=maris.precio,
-        id_cat=maris.id_cat,
-        id_tamañop=maris.id_tamañop
+def create_mariscos(mariscos_data: createMariscos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    marisco = mariscos(
+        nombre=mariscos_data.nombre,
+        descripcion=mariscos_data.descripcion,
+        id_tamañop=mariscos_data.id_tamañop,
+        id_cat=mariscos_data.id_cat
     )
-    session.add(new_maris)
+    session.add(marisco)
     session.commit()
-    session.refresh(new_maris)
-    return {"message": "Mariscos creados correctamente", "id_maris": new_maris.id_maris}
+    session.refresh(marisco)
+    return {"message": "Mariscos registrados correctamente"}
 
 @router.delete("/eliminar-mariscos/{id_maris}")
-def deleteMariscos(id_maris: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
-    maris = session.get(mariscos, id_maris)
-    if not maris:
+def delete_mariscos(id_maris: int, session: Session = Depends(get_session), token: str = Depends(verify_token)):
+    marisco = session.get(mariscos, id_maris)
+    if not marisco:
         return {"message": "Mariscos no encontrados"}
-    session.delete(maris)
+    session.delete(marisco)
     session.commit()
     return {"message": "Mariscos eliminados correctamente"}
