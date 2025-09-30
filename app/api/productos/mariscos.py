@@ -15,7 +15,7 @@ router = APIRouter()
 @router.get("/", response_model=List[readAlitasOut])
 def getMariscos(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
-        select(mariscos.id_maris, mariscos.nombre, mariscos.descripcion, CategoriasProd.descripcion.label("categoria"), tamanosPizzas.descripcion.label("tamaño"))
+        select(mariscos.id_maris, mariscos.nombre, mariscos.descripcion, CategoriasProd.descripcion.label("categoria"), tamanosPizzas.tamano.label("tamaño"))
         .join(CategoriasProd, mariscos.id_cat == CategoriasProd.id_cat)
         .join(tamanosPizzas, mariscos.id_tamañop == tamanosPizzas.id_tamañop)
     )
