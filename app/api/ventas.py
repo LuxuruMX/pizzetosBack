@@ -7,6 +7,7 @@ from app.core.dependency import verify_token
 from app.api.productos import alitas, costillas, especialidad, hamburguesas, refrescos, papas
 
 from app.models.categoriaModel import categoria as CategoriasProd
+from app.models.tamanosPizzasModel import tamanosPizzas
 
 
 router=APIRouter()
@@ -15,6 +16,12 @@ router=APIRouter()
 @router.get("/categoria", tags=["Categoria"])
 def getCategoria(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement=select(CategoriasProd)
+    results = session.exec(statement).all()
+    return results
+
+@router.get("/tamanos-pizza", tags=["Tamaños Pizza"])
+def getTamanosPizza(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    statement=select(tamanosPizzas)
     results = session.exec(statement).all()
     return results
 
