@@ -4,7 +4,7 @@ from typing import List
 from app.db.session import get_session
 from app.core.dependency import verify_token
 
-from app.api.productos import alitas, costillas, especialidad, hamburguesas, refrescos
+from app.api.productos import alitas, costillas, especialidad, hamburguesas, refrescos, papas
 
 from app.models.categoriaModel import categoria as CategoriasProd
 
@@ -25,4 +25,4 @@ router.include_router(costillas.router, prefix="/costillas", tags=["Costillas"])
 router.include_router(especialidad.router, prefix="/especialidad", tags=["Especialidad"])
 router.include_router(hamburguesas.router, prefix="/hamburguesas", tags=["Hamburguesas"])
 router.include_router(refrescos.router, prefix="/refrescos", tags=["Refrescos"])
-
+router.include_router(papas.router, prefix="/papas", tags=["Papas"])

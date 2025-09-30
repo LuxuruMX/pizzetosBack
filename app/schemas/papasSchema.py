@@ -11,3 +11,9 @@ class readPapas(BaseModel):
     orden: str
     precio: Decimal
     id_cat: int
+    
+class readPapasOut(BaseModel):
+    id_papa: int
+    orden: str
+    precio: Decimal
+    categoria: str
