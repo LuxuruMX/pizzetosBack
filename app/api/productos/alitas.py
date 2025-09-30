@@ -11,7 +11,7 @@ from app.models.categoriaModel import categoria as CategoriasProd
 
 router = APIRouter()
 
-@router.get("/alitas", response_model=List[readAlitasOut])
+@router.get("/", response_model=List[readAlitasOut])
 def getAlitas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
         select(Alita.id_alis, Alita.orden, Alita.precio, CategoriasProd.descripcion.label("categoria"))
@@ -27,7 +27,7 @@ def getAlitas(session: Session = Depends(get_session), username: str = Depends(v
     ) for r in results]
     
     
-@router.get("/alitas/{id_alis}", response_model=readAlitasOut)
+@router.get("/{id_alis}", response_model=readAlitasOut)
 def getAlitasById(id_alis: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
         select(Alita.id_alis, Alita.orden, Alita.precio, CategoriasProd.descripcion.label("categoria"))

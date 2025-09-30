@@ -13,7 +13,7 @@ router=APIRouter()
 
 
 @router.get("/categoria", tags=["Categoria"])
-def getCategoriaAlitas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getCategoria(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement=select(CategoriasProd)
     results = session.exec(statement).all()
     return results
