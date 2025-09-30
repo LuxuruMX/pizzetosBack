@@ -15,7 +15,7 @@ class readRefrescos(BaseModel):
 class readRefrescosOut(BaseModel):
     id_refresco: int
     nombre: str
-    tamano: str
+    tamaño: str
     categoria: str
 
     class Config:

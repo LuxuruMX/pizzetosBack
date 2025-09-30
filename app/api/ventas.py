@@ -8,6 +8,7 @@ from app.api.productos import alitas, costillas, especialidad, hamburguesas, ref
 
 from app.models.categoriaModel import categoria as CategoriasProd
 from app.models.tamanosPizzasModel import tamanosPizzas
+from app.models.tamanosRefrescosModel import tamanosRefrescos
 
 
 router=APIRouter()
@@ -22,6 +23,12 @@ def getCategoria(session: Session = Depends(get_session), username: str = Depend
 @router.get("/tamanos-pizza", tags=["Tamaños Pizza"])
 def getTamanosPizza(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement=select(tamanosPizzas)
+    results = session.exec(statement).all()
+    return results
+
+@router.get("/tamanos-refresco", tags=["Tamaños Refresco"])
+def getTamanosRefresco(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    statement=select(tamanosRefrescos)
     results = session.exec(statement).all()
     return results
 

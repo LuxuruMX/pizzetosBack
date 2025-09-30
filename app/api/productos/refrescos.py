@@ -8,27 +8,30 @@ from app.models.refrescosModel import refrescos
 from app.schemas.refrescosSchema import createRefrescos, readRefrescosOut
 
 from app.models.categoriaModel import categoria as CategoriasProd
+from app.models.tamanosRefrescosModel import tamanosRefrescos
 
 router=APIRouter()
 
 @router.get("/refrescos", response_model=List[readRefrescosOut] ,tags=["Refrescos"])
 def getRefrescos(session: Session = Depends(get_session), username: str = Depends(verify_token)):
-    statement=(
-        select(refrescos.id_refresco, refrescos.nombre, refrescos.id_tamano, CategoriasProd.descripcion.label("categoria"))
+    statement = (
+        select(refrescos.id_refresco, refrescos.nombre, tamanosRefrescos.tamano.label("tamaño"), CategoriasProd.descripcion.label("categoria"))
+        .join(tamanosRefrescos, refrescos.id_tamano == tamanosRefrescos.id_tamano)
         .join(CategoriasProd, refrescos.id_cat == CategoriasProd.id_cat)
     )
     results = session.exec(statement).all()
     return [readRefrescosOut(
         id_refresco=r.id_refresco,
         nombre=r.nombre,
-        tamano=r.id_tamano,
+        tamaño=r.tamaño,
         categoria=r.categoria
     ) for r in results]
     
 @router.get("/refrescos/{id_refresco}", response_model=readRefrescosOut, tags=["Refrescos"])
-def getRefrescoById(id_refresco: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getRefrescosById(id_refresco: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
-        select(refrescos.id_refresco, refrescos.nombre, refrescos.id_tamano, CategoriasProd.descripcion.label("categoria"))
+        select(refrescos.id_refresco, refrescos.nombre, tamanosRefrescos.tamano.label("tamaño"), CategoriasProd.descripcion.label("categoria"))
+        .join(tamanosRefrescos, refrescos.id_tamano == tamanosRefrescos.id_tamano)
         .join(CategoriasProd, refrescos.id_cat == CategoriasProd.id_cat)
         .where(refrescos.id_refresco == id_refresco)
     )
@@ -38,45 +41,41 @@ def getRefrescoById(id_refresco: int, session: Session = Depends(get_session), u
         return readRefrescosOut(
             id_refresco=result.id_refresco,
             nombre=result.nombre,
-            tamano=result.id_tamano,
+            tamaño=result.tamaño,
             categoria=result.categoria
         )
     return {"message": "Refresco no encontrado"}
 
 @router.put("/actualizar-refresco/{id_refresco}", tags=["Refrescos"])
-def updateRefresco(id_refresco: int, refresco_data: createRefrescos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
-    refresco_item = session.get(refrescos, id_refresco)
-    if not refresco_item:
+def updateRefresco(id_refresco: int, refresco: createRefrescos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    refri = session.get(refrescos, id_refresco)
+    if not refri:
         return {"message": "Refresco no encontrado"}
-    
-    refresco_item.nombre = refresco_data.nombre
-    refresco_item.id_tamano = refresco_data.id_tamano
-    refresco_item.id_cat = refresco_data.id_cat
-    
-    session.add(refresco_item)
+    refri.nombre = refresco.nombre
+    refri.id_tamano = refresco.id_tamano
+    refri.id_cat = refresco.id_cat
+    session.add(refri)
     session.commit()
-    session.refresh(refresco_item)
-    
+    session.refresh(refri)
     return {"message": "Refresco actualizado correctamente"}
 
 @router.post("/crear-refresco", tags=["Refrescos"])
-def createRefresco(refresco_data: createRefrescos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
-    nuevo_refresco = refrescos(
-        nombre= refresco_data.nombre,
-        id_tamano= refresco_data.id_tamano,
-        id_cat= refresco_data.id_cat
+def createRefresco(refresco: createRefrescos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    refri=refrescos(
+        nombre= refresco.nombre,
+        id_tamano= refresco.id_tamano,
+        id_cat= refresco.id_cat
     )
-    session.add(nuevo_refresco)
+    session.add(refri)
     session.commit()
-    session.refresh(nuevo_refresco)
-    return {"message": "Refresco registrado correctamente"}
+    session.refresh(refri)
+    return {"message" : "Refresco registrado correctamente"}
 
 @router.delete("/eliminar-refresco/{id_refresco}", tags=["Refrescos"])
 def deleteRefresco(id_refresco: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
-    
-    refresco_item = session.get(refrescos, id_refresco)
-    if not refresco_item:
+    refri = session.get(refrescos, id_refresco)
+    if not refri:
         return {"message": "Refresco no encontrado"}
-    session.delete(refresco_item)
+    session.delete(refri)
     session.commit()
     return {"message": "Refresco eliminado correctamente"}
