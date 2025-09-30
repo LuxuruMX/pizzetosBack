@@ -4,7 +4,15 @@ from typing import List
 from app.db.session import get_session
 from app.core.dependency import verify_token
 
-from app.api.productos import alitas, costillas, especialidad, hamburguesas, refrescos, papas, mariscos, magno, spaguetty
+from app.api.productos import (alitas, 
+                               costillas, 
+                               especialidad, 
+                               hamburguesas, 
+                               refrescos, 
+                               papas, 
+                               mariscos, 
+                               magno, 
+                               spaguetty)
 
 from app.models.categoriaModel import categoria as CategoriasProd
 from app.models.tamanosPizzasModel import tamanosPizzas
