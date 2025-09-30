@@ -11,3 +11,12 @@ class readRefrescos(BaseModel):
     nombre: str
     id_tamano: int
     id_cat: int
+    
+class readRefrescosOut(BaseModel):
+    id_refresco: int
+    nombre: str
+    tamano: str
+    categoria: str
+
+    class Config:
+        orm_mode = True
