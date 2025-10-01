@@ -16,7 +16,7 @@ router = APIRouter()
 @router.get("/", response_model=List[readRectangularOut])
 def getRectangular(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
-        select(rectangular.id_rec, especialidad.nombre.label("especialidad"),CategoriasProd.descripcion.label("categoria"))
+        select(rectangular.id_rec, especialidad.nombre.label("especialidad"),CategoriasProd.descripcion.label("categoria"), rectangular.precio)
         .join(CategoriasProd, rectangular.id_cat == CategoriasProd.id_cat)
         .join(especialidad, rectangular.id_esp == especialidad.id_esp)
     )
@@ -25,13 +25,14 @@ def getRectangular(session: Session = Depends(get_session), username: str = Depe
     return [readRectangularOut(
         id_rec=r.id_rec,
         especialidad=r.especialidad,
-        categoria=r.categoria
+        categoria=r.categoria,
+        precio=r.precio
     ) for r in results]
     
 @router.get("/{id_rec}", response_model=readRectangularOut)
 def getRectangularById(id_rec: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
-        select(rectangular.id_rec, especialidad.nombre.label("especialidad"),CategoriasProd.descripcion.label("categoria"))
+        select(rectangular.id_rec, especialidad.nombre.label("especialidad"),CategoriasProd.descripcion.label("categoria"), rectangular.precio)
         .join(CategoriasProd, rectangular.id_cat == CategoriasProd.id_cat)
         .join(especialidad, rectangular.id_esp == especialidad.id_esp)
         .where(rectangular.id_rec == id_rec)
@@ -43,7 +44,8 @@ def getRectangularById(id_rec: int, session: Session = Depends(get_session), use
     return readRectangularOut(
         id_rec=result.id_rec,
         especialidad=result.especialidad,
-        categoria=result.categoria
+        categoria=result.categoria,
+        precio=result.precio
     )
     
 @router.put("/editar-rectangular/{id_rec}")
@@ -54,6 +56,7 @@ def updateRectangular(id_rec: int, rectangular_data: createRectangular, session:
     
     rectangular_item.id_esp = rectangular_data.id_esp
     rectangular_item.id_cat = rectangular_data.id_cat
+    rectangular_item.precio = rectangular_data.precio
     
     session.add(rectangular_item)
     session.commit()
@@ -64,7 +67,8 @@ def updateRectangular(id_rec: int, rectangular_data: createRectangular, session:
 def createRectangular(rectangular_data: createRectangular, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     new_rectangular = rectangular(
         id_esp=rectangular_data.id_esp,
-        id_cat=rectangular_data.id_cat
+        id_cat=rectangular_data.id_cat,
+        precio=rectangular_data.precio
     )
     session.add(new_rectangular)
     session.commit()
