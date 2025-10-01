@@ -12,7 +12,8 @@ from app.api.productos import (alitas,
                                papas, 
                                mariscos, 
                                magno, 
-                               spaguetty)
+                               spaguetty,
+                               rectangular)
 
 from app.models.categoriaModel import categoria as CategoriasProd
 from app.models.tamanosPizzasModel import tamanosPizzas
@@ -51,3 +52,4 @@ router.include_router(papas.router, prefix="/papas", tags=["Papas"])
 router.include_router(mariscos.router, prefix="/mariscos", tags=["Mariscos"])
 router.include_router(magno.router, prefix="/magno", tags=["Magno"])
 router.include_router(spaguetty.router, prefix="/spaguetty", tags=["Spaguetty"])
+router.include_router(rectangular.router, prefix="/rectangular", tags=["Rectangular"])
