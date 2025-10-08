@@ -47,7 +47,7 @@ def getBarraById(id_barr: int, session: Session = Depends(get_session), username
         )
     return {"message": "Producto de barra no encontrado"}
 
-@router.put("/actualizar-barra/{id_barr}")
+@router.put("/{id_barr}")
 def updateBarra(id_barr: int, barra_data: createBarra, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     barra_item = session.get(barra, id_barr)
     if not barra_item:
@@ -60,7 +60,7 @@ def updateBarra(id_barr: int, barra_data: createBarra, session: Session = Depend
     session.refresh(barra_item)
     return {"message": "Producto de barra actualizado correctamente"}
 
-@router.post("/crear-barra")
+@router.post("/")
 def createBarraItem(barra_data: createBarra, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     new_barra = barra(
         id_especialidad=barra_data.id_especialidad,
@@ -73,7 +73,7 @@ def createBarraItem(barra_data: createBarra, session: Session = Depends(get_sess
 
     return {"message": "Producto de barra creado correctamente"}
     
-@router.delete("/eliminar-barra/{id_barr}")
+@router.delete("/{id_barr}")
 def deleteBarra(id_barr: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     barra_item = session.get(barra, id_barr)
     if not barra_item:

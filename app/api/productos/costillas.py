@@ -11,7 +11,7 @@ from app.models.categoriaModel import categoria as CategoriasProd
 
 router = APIRouter()
 
-@router.get("/costillas", response_model=List[readCostillasOut], tags=["Costillas"])
+@router.get("/", response_model=List[readCostillasOut], tags=["Costillas"])
 def getCostillas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
         select(costillas.id_cos, costillas.orden, costillas.precio, CategoriasProd.descripcion.label("categoria"))
@@ -27,7 +27,7 @@ def getCostillas(session: Session = Depends(get_session), username: str = Depend
     ) for r in results]
     
 
-@router.get("/costillas/{id_cos}", response_model=readCostillasOut, tags=["Costillas"])
+@router.get("/{id_cos}", response_model=readCostillasOut, tags=["Costillas"])
 def getCostillasById(id_cos: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
         select(costillas.id_cos, costillas.orden, costillas.precio, CategoriasProd.descripcion.label("categoria"))
@@ -48,14 +48,14 @@ def getCostillasById(id_cos: int, session: Session = Depends(get_session), usern
 
 
 @router.put("/actualizar-costillas/{id_cos}", tags=["Costillas"])
-def updateCostillas(id_cos: int, costillas: createCostillas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def updateCostillas(id_cos: int, costilla_data: createCostillas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     costilla = session.get(costillas, id_cos)
     if not costilla:
         return {"message": "Costillas no encontradas"}
     
-    costilla.orden = costillas.orden
-    costilla.precio = costillas.precio
-    costilla.id_cat = costillas.id_cat
+    costilla.orden = costilla_data.orden
+    costilla.precio = costilla_data.precio
+    costilla.id_cat = costilla_data.id_cat
     
     session.add(costilla)
     session.commit()

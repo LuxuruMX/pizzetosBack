@@ -8,28 +8,27 @@ from app.core.dependency import verify_token
 from app.models.especialidadModel import especialidad
 from app.schemas.especialidadSchema import createEspecialidad, readEspecialidad
 
-from app.models.categoriaModel import categoria as CategoriasProd
 
 router = APIRouter()
 
 
 
 
-@router.get("/especialidades",response_model=List[readEspecialidad] ,tags=["Especialidad"])
+@router.get("/",response_model=List[readEspecialidad] ,tags=["Especialidad"])
 def getEspecialidades(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement=select(especialidad)
     results = session.exec(statement).all()
     return results
 
 
-@router.get("/especialidades/{id_esp}", response_model=readEspecialidad, tags=["Especialidad"])
+@router.get("/{id_esp}", response_model=readEspecialidad, tags=["Especialidad"])
 def getEspecialidadById(id_esp: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     especialidad_item = session.get(especialidad, id_esp)
     if especialidad_item:
         return especialidad_item
     return {"message": "Especialidad no encontrada"}
 
-@router.put("/actualizar-especialidad/{id_esp}", tags=["Especialidad"])
+@router.put("/{id_esp}", tags=["Especialidad"])
 def updateEspecialidad(id_esp: int, especialidad_data: createEspecialidad, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     especialidad_item = session.get(especialidad, id_esp)
     if not especialidad_item:
@@ -45,7 +44,7 @@ def updateEspecialidad(id_esp: int, especialidad_data: createEspecialidad, sessi
     return {"message": "Especialidad actualizada correctamente"}
 
 
-@router.post("/crear-especialidad", tags=["Especialidad"])
+@router.post("/", tags=["Especialidad"])
 def createEspecialidad(especialidad_data: createEspecialidad, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     nueva_especialidad = especialidad(
         nombre= especialidad_data.nombre,
@@ -57,7 +56,7 @@ def createEspecialidad(especialidad_data: createEspecialidad, session: Session =
     return {"message": "Especialidad registrada correctamente"}
 
 
-@router.delete("/eliminar-especialidad/{id_esp}", tags=["Especialidad"])
+@router.delete("/{id_esp}", tags=["Especialidad"])
 def deleteEspecialidad(id_esp: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     especialidad_item = session.get(especialidad, id_esp)
     if not especialidad_item:

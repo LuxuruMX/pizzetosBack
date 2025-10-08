@@ -44,7 +44,7 @@ def getSpaguettyById(id_spag: int, session: Session = Depends(get_session), user
         )
     return {"message": "Spaguetty no encontrado"}
 
-@router.put("/actualizar-spaguetty/{id_spag}")
+@router.put("/{id_spag}")
 def updateSpaguetty(id_spag: int, spaguetty_data: createSpaguetty, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     spag = session.get(spaguetty, id_spag)
     if not spag:
@@ -57,7 +57,7 @@ def updateSpaguetty(id_spag: int, spaguetty_data: createSpaguetty, session: Sess
     session.refresh(spag)
     return {"message": "Spaguetty actualizado correctamente"}
 
-@router.post("/crear-spaguetty", response_model=createSpaguetty)
+@router.post("/", response_model=createSpaguetty)
 def createSpaguettyItem(spaguetty_data: createSpaguetty, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     new_spag = spaguetty(
         orden=spaguetty_data.orden,
@@ -69,7 +69,7 @@ def createSpaguettyItem(spaguetty_data: createSpaguetty, session: Session = Depe
     session.refresh(new_spag)
     return new_spag
 
-@router.delete("/eliminar-spaguetty/{id_spag}")
+@router.delete("/{id_spag}")
 def deleteSpaguetty(id_spag: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     spag = session.get(spaguetty, id_spag)
     if not spag:

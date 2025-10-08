@@ -11,7 +11,7 @@ from app.models.categoriaModel import categoria as CategoriasProd
 
 router = APIRouter()
 
-@router.get("/hamburguesas", response_model=List[readHamburguesasOut] ,tags=["Hamburguesas"])
+@router.get("/", response_model=List[readHamburguesasOut])
 def getHamburguesas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement=(
         select(hamburguesas.id_hamb, hamburguesas.paquete, hamburguesas.precio, CategoriasProd.descripcion.label("categoria"))
@@ -25,7 +25,7 @@ def getHamburguesas(session: Session = Depends(get_session), username: str = Dep
         categoria=r.categoria
     ) for r in results]
 
-@router.get("/hamburguesas/{id_hamb}", response_model=readHamburguesasOut, tags=["Hamburguesas"])
+@router.get("/{id_hamb}", response_model=readHamburguesasOut)
 def getHamburguesaById(id_hamb: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
         select(hamburguesas.id_hamb, hamburguesas.paquete, hamburguesas.precio, CategoriasProd.descripcion.label("categoria"))
@@ -43,7 +43,7 @@ def getHamburguesaById(id_hamb: int, session: Session = Depends(get_session), us
         )
     return {"message": "Hamburguesa no encontrada"}
 
-@router.put("/actualizar-hamburguesa/{id_hamb}", tags=["Hamburguesas"])
+@router.put("/{id_hamb}")
 def updateHamburguesa(id_hamb: int, hamburguesa_data: createHamburguesas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     hamburguesa_item = session.get(hamburguesas, id_hamb)
     if not hamburguesa_item:
@@ -59,7 +59,7 @@ def updateHamburguesa(id_hamb: int, hamburguesa_data: createHamburguesas, sessio
     
     return {"message": "Hamburguesa actualizada correctamente"}
 
-@router.post("/crear-hamburguesa", tags=["Hamburguesas"])
+@router.post("/")
 def createHamburguesa(hamburguesa_data: createHamburguesas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     nueva_hamburguesa = hamburguesas(
         paquete= hamburguesa_data.paquete,
@@ -71,7 +71,7 @@ def createHamburguesa(hamburguesa_data: createHamburguesas, session: Session = D
     session.refresh(nueva_hamburguesa)
     return {"message": "Hamburguesa registrada correctamente"}
 
-@router.delete("/eliminar-hamburguesa/{id_hamb}", tags=["Hamburguesas"])
+@router.delete("/{id_hamb}")
 def deleteHamburguesa(id_hamb: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     
     hamburguesa_item = session.get(hamburguesas, id_hamb)

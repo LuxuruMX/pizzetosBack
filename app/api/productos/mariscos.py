@@ -59,7 +59,7 @@ def get_mariscos_by_id(id_maris: int, session: Session = Depends(get_session), u
         )
     return {"message": "Mariscos no encontrados"}
 
-@router.put("/actualizar-mariscos/{id_maris}")
+@router.put("/{id_maris}")
 def update_mariscos(id_maris: int, mariscos_data: createMariscos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     marisco = session.get(mariscos, id_maris)
     if not marisco:
@@ -73,7 +73,7 @@ def update_mariscos(id_maris: int, mariscos_data: createMariscos, session: Sessi
     session.refresh(marisco)
     return {"message": "Mariscos actualizados correctamente"}
 
-@router.post("/crear-mariscos")
+@router.post("/")
 def create_mariscos(mariscos_data: createMariscos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     marisco = mariscos(
         nombre=mariscos_data.nombre,
@@ -86,7 +86,7 @@ def create_mariscos(mariscos_data: createMariscos, session: Session = Depends(ge
     session.refresh(marisco)
     return {"message": "Mariscos registrados correctamente"}
 
-@router.delete("/eliminar-mariscos/{id_maris}")
+@router.delete("/{id_maris}")
 def delete_mariscos(id_maris: int, session: Session = Depends(get_session), token: str = Depends(verify_token)):
     marisco = session.get(mariscos, id_maris)
     if not marisco:

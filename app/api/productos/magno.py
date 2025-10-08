@@ -15,7 +15,7 @@ router = APIRouter()
 @router.get("/", response_model=List[readMagnoOut])
 def getMagno(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
-        select(magno.id_magno, especialidad.descripcion.label("especialidad"), refrescos.nombre.label("refresco"), magno.precio)
+        select(magno.id_magno, especialidad.nombre.label("especialidad"), refrescos.nombre.label("refresco"), magno.precio)
         .join(especialidad, magno.id_especialidad == especialidad.id_esp)
         .join(refrescos, magno.id_refresco == refrescos.id_refresco)
     )
@@ -31,7 +31,7 @@ def getMagno(session: Session = Depends(get_session), username: str = Depends(ve
 @router.get("/{id_magno}", response_model=readMagnoOut)
 def getMagnoById(id_magno: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
-        select(magno.id_magno, especialidad.descripcion.label("especialidad"), refrescos.nombre.label("refresco"), magno.precio)
+        select(magno.id_magno, especialidad.nombre.label("especialidad"), refrescos.nombre.label("refresco"), magno.precio)
         .join(especialidad, magno.id_especialidad == especialidad.id_esp)
         .join(refrescos, magno.id_refresco == refrescos.id_refresco)
         .where(magno.id_magno == id_magno)
@@ -47,7 +47,7 @@ def getMagnoById(id_magno: int, session: Session = Depends(get_session), usernam
         )
     return {"message": "Magno no encontrado"}
 
-@router.put("/actualizar-magno/{id_magno}")
+@router.put("/{id_magno}")
 def updateMagno(id_magno: int, mag: createMagno, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     magno_item = session.get(magno, id_magno)
     if not magno_item:
@@ -60,7 +60,7 @@ def updateMagno(id_magno: int, mag: createMagno, session: Session = Depends(get_
     session.refresh(magno_item)
     return {"message": "Magno actualizado correctamente"}
 
-@router.post("/crear-magno")
+@router.post("/")
 def createMagnos(mag: createMagno, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     magno_item = magno(
         id_especialidad= mag.id_especialidad,
@@ -72,7 +72,7 @@ def createMagnos(mag: createMagno, session: Session = Depends(get_session), user
     session.refresh(magno_item)
     return {"message" : "Magno registrado correctamente"}
 
-@router.delete("/eliminar-magno/{id_magno}")
+@router.delete("/{id_magno}")
 def deleteMagno(id_magno: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     magno_item = session.get(magno, id_magno)
     if not magno_item:

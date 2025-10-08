@@ -48,7 +48,7 @@ def getRectangularById(id_rec: int, session: Session = Depends(get_session), use
         precio=result.precio
     )
     
-@router.put("/editar-rectangular/{id_rec}")
+@router.put("/{id_rec}")
 def updateRectangular(id_rec: int, rectangular_data: createRectangular, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     rectangular_item = session.get(rectangular, id_rec)
     if not rectangular_item:
@@ -63,7 +63,7 @@ def updateRectangular(id_rec: int, rectangular_data: createRectangular, session:
     session.refresh(rectangular_item)
     return {"message": "Rectangular actualizado correctamente"}
 
-@router.post("/crear-rectangular")
+@router.post("/")
 def createRectangular(rectangular_data: createRectangular, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     new_rectangular = rectangular(
         id_esp=rectangular_data.id_esp,
@@ -75,7 +75,7 @@ def createRectangular(rectangular_data: createRectangular, session: Session = De
     session.refresh(new_rectangular)
     return {"message": "Rectangular creado correctamente"}
 
-@router.delete("/eliminar-rectangular/{id_rec}")
+@router.delete("/{id_rec}")
 def deleteRectangular(id_rec: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     rectangular_item = session.get(rectangular, id_rec)
     if not rectangular_item:

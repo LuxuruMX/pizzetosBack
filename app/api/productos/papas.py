@@ -44,7 +44,7 @@ def getPapasById(id_papa: int, session: Session = Depends(get_session), username
         )
     return {"message": "Papas no encontradas"}
 
-@router.put("/actualizar-papas/{id_papa}")
+@router.put("/{id_papa}")
 def updatePapas(id_papa: int, papas_data: createPapas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     papa = session.get(papas, id_papa)
     if not papa:
@@ -57,7 +57,7 @@ def updatePapas(id_papa: int, papas_data: createPapas, session: Session = Depend
     session.refresh(papa)
     return {"message": "Papas actualizadas correctamente"}
 
-@router.post("/crear-papas")
+@router.post("/")
 def createPapasEndpoint(papas_data: createPapas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     new_papa = papas(
         orden=papas_data.orden,
@@ -69,7 +69,7 @@ def createPapasEndpoint(papas_data: createPapas, session: Session = Depends(get_
     session.refresh(new_papa)
     return {"message": "Papas creadas correctamente"}
 
-@router.delete("/eliminar-papas/{id_papa}")
+@router.delete("/{id_papa}")
 def deletePapas(id_papa: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     papa = session.get(papas, id_papa)
     if not papa:
