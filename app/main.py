@@ -3,7 +3,11 @@ from app.db.session import init_db
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.dependency import verify_token
 
-from app.api import login, empleados, clientes, ventas
+from app.api import (login, 
+                    empleados,
+                    clientes,
+                    recursos,
+                    ventas)
 
 
 app = FastAPI(
@@ -36,3 +40,4 @@ app.include_router(login.router, prefix="/login", tags=["login"])
 app.include_router(empleados.router, prefix="/empleados", tags=["personal"])
 app.include_router(clientes.router, prefix="/clientes", tags=["clientes"])
 app.include_router(ventas.router, prefix="/ventas", tags=["ventas"])
+app.include_router(recursos.router, prefix="/extras", tags=["extras"])

@@ -6,3 +6,5 @@ class createCargo(BaseModel):
 class readCargo(BaseModel):
     id_ca: int
     nombre: str
+    class config:
+        orm_mode = True
