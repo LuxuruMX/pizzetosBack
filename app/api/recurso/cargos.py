@@ -4,12 +4,10 @@ from typing import List
 from app.db.session import get_session
 from app.core.dependency import verify_token
 
-
 from app.models.cargoModel import Cargos
-from app.schemas.cargoSchema import readCargo, createCargo
 
 from app.models.permisosModel import permisos
-from app.schemas.permisosSchema import readPermisos, readPermisosWhitCargo, createCargoConPermisos
+from app.schemas.permisosSchema import readPermisosWhitCargo, createCargoConPermisos
 
 from app.models.empleadoModel import Empleados
 
