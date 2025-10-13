@@ -1,12 +1,9 @@
-from fastapi import APIRouter, Depends
-from sqlmodel import Session, select
-from typing import List
-from app.db.session import get_session
+from fastapi import APIRouter
 from argon2 import PasswordHasher
-from app.core.dependency import verify_token
 
 from app.api.recurso import (cargos,
-                             sucursales)
+                             sucursales,
+                             categorias)
 
 router = APIRouter()
 ph = PasswordHasher()
@@ -15,3 +12,4 @@ ph = PasswordHasher()
 
 router.include_router(cargos.router, prefix="/cargos", tags=["cargos"])
 router.include_router(sucursales.router, prefix="/sucursales", tags=["Sucursales"])
+router.include_router(categorias.router, prefix="/categorias", tags=["Categorias"])
