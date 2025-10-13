@@ -18,6 +18,7 @@ router = APIRouter()
 def getCargo(session: Session = Depends(get_session)):
     statement = (
         select(permisos.id_permiso,
+               permisos.id_cargo,  # ← AGREGAR ESTO
                Cargos.nombre.label("cargo"),
                
                permisos.crear_producto,
@@ -44,6 +45,7 @@ def getCargo(session: Session = Depends(get_session)):
     results = session.exec(statement).all()
     return [readPermisosWhitCargo(
         id_permiso=r.id_permiso,
+        id_cargo=r.id_cargo,  # ← AGREGAR ESTO
         cargo=r.cargo,
         
         crear_producto=r.crear_producto,

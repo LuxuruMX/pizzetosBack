@@ -28,27 +28,28 @@ class readPermisos(BaseModel):
 
 class readPermisosWhitCargo(BaseModel):
     id_permiso: int
+    id_cargo: int
     cargo: str
-    
-    crear_producto:bool
-    modificar_producto:bool
-    eliminar_producto:bool
-    ver_producto:bool
-    
-    crear_empleado:bool
-    modificar_empleado:bool
-    eliminar_empleado:bool
-    ver_empleado:bool
-    
-    crear_venta:bool
-    modificar_venta:bool
-    eliminar_venta:bool
-    ver_venta:bool
-    
-    crear_recurso:bool 
-    modificar_recurso:bool
-    eliminar_recurso:bool
-    ver_recurso:bool
+
+    crear_producto: bool
+    modificar_producto: bool
+    eliminar_producto: bool
+    ver_producto: bool
+
+    crear_empleado: bool
+    modificar_empleado: bool
+    eliminar_empleado: bool
+    ver_empleado: bool
+
+    crear_venta: bool
+    modificar_venta: bool
+    eliminar_venta: bool
+    ver_venta: bool
+
+    crear_recurso: bool
+    modificar_recurso: bool
+    eliminar_recurso: bool
+    ver_recurso: bool
 
 
 class createCargoConPermisos(BaseModel):
