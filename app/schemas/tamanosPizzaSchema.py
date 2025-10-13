@@ -10,3 +10,5 @@ class readTamanosPizza(BaseModel):
     id_tamañop: int
     tamano: str
     precio: Decimal
+    class Config:
+        orm_mode = True
