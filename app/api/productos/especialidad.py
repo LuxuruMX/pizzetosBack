@@ -14,21 +14,21 @@ router = APIRouter()
 
 
 
-@router.get("/",response_model=List[readEspecialidad] ,tags=["Especialidad"])
+@router.get("/",response_model=List[readEspecialidad])
 def getEspecialidades(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement=select(especialidad)
     results = session.exec(statement).all()
     return results
 
 
-@router.get("/{id_esp}", response_model=readEspecialidad, tags=["Especialidad"])
+@router.get("/{id_esp}", response_model=readEspecialidad)
 def getEspecialidadById(id_esp: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     especialidad_item = session.get(especialidad, id_esp)
     if especialidad_item:
         return especialidad_item
     return {"message": "Especialidad no encontrada"}
 
-@router.put("/{id_esp}", tags=["Especialidad"])
+@router.put("/{id_esp}")
 def updateEspecialidad(id_esp: int, especialidad_data: createEspecialidad, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     especialidad_item = session.get(especialidad, id_esp)
     if not especialidad_item:
@@ -44,7 +44,7 @@ def updateEspecialidad(id_esp: int, especialidad_data: createEspecialidad, sessi
     return {"message": "Especialidad actualizada correctamente"}
 
 
-@router.post("/", tags=["Especialidad"])
+@router.post("/")
 def createEspecialidad(especialidad_data: createEspecialidad, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     nueva_especialidad = especialidad(
         nombre= especialidad_data.nombre,
@@ -56,7 +56,7 @@ def createEspecialidad(especialidad_data: createEspecialidad, session: Session =
     return {"message": "Especialidad registrada correctamente"}
 
 
-@router.delete("/{id_esp}", tags=["Especialidad"])
+@router.delete("/{id_esp}")
 def deleteEspecialidad(id_esp: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     especialidad_item = session.get(especialidad, id_esp)
     if not especialidad_item:

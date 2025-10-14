@@ -11,7 +11,7 @@ from app.models.categoriaModel import categoria as CategoriasProd
 
 router = APIRouter()
 
-@router.get("/", response_model=List[readCostillasOut], tags=["Costillas"])
+@router.get("/", response_model=List[readCostillasOut])
 def getCostillas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
         select(costillas.id_cos, costillas.orden, costillas.precio, CategoriasProd.descripcion.label("categoria"))
@@ -27,7 +27,7 @@ def getCostillas(session: Session = Depends(get_session), username: str = Depend
     ) for r in results]
     
 
-@router.get("/{id_cos}", response_model=readCostillasOut, tags=["Costillas"])
+@router.get("/{id_cos}", response_model=readCostillasOut)
 def getCostillasById(id_cos: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     statement = (
         select(costillas.id_cos, costillas.orden, costillas.precio, CategoriasProd.descripcion.label("categoria"))
@@ -47,7 +47,7 @@ def getCostillasById(id_cos: int, session: Session = Depends(get_session), usern
 
 
 
-@router.put("/actualizar-costillas/{id_cos}", tags=["Costillas"])
+@router.put("/{id_cos}")
 def updateCostillas(id_cos: int, costilla_data: createCostillas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     costilla = session.get(costillas, id_cos)
     if not costilla:
@@ -64,7 +64,7 @@ def updateCostillas(id_cos: int, costilla_data: createCostillas, session: Sessio
     return {"message": "Costillas actualizadas correctamente"}
 
 
-@router.post("/crear-costillas", tags=["Costillas"])
+@router.post("/")
 def createCostilla(costilla: createCostillas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     cost=costillas(
         orden= costilla.orden,
@@ -77,7 +77,7 @@ def createCostilla(costilla: createCostillas, session: Session = Depends(get_ses
     return {"message": "Costilla registrada orrectamente"}
 
 
-@router.delete("/eliminar-costillas/{id_cos}", tags=["Costillas"])
+@router.delete("/{id_cos}")
 def deleteCostillas(id_cos: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     costilla = session.get(costillas, id_cos)
     if not costilla:

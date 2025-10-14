@@ -46,7 +46,7 @@ def getAlitasById(id_alis: int, session: Session = Depends(get_session), usernam
     return {"message": "Alitas no encontradas"}
     
     
-@router.put("/actualizar-alitas/{id_alis}")
+@router.put("/{id_alis}")
 def updateAlitas(id_alis: int, alitas: createAlitas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     alita = session.get(Alita, id_alis)
     if not alita:
@@ -60,7 +60,7 @@ def updateAlitas(id_alis: int, alitas: createAlitas, session: Session = Depends(
     return {"message": "Alitas actualizadas correctamente"}
 
 
-@router.post("/crear-alitas")
+@router.post("/")
 def createAlitas(alitas: createAlitas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     alita=Alita(
         orden= alitas.orden,
@@ -72,7 +72,7 @@ def createAlitas(alitas: createAlitas, session: Session = Depends(get_session), 
     session.refresh(alita)
     return {"message" : "Alitas registradas correctamente"}
 
-@router.delete("/eliminar-alitas/{id_alis}")
+@router.delete("/{id_alis}")
 def deleteAlitas(id_alis: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
     alita = session.get(Alita, id_alis)
     if not alita:
