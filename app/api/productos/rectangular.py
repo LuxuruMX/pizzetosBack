@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.rectangularModel import rectangular 
 from app.schemas.rectangularSchema import readRectangularOut, createRectangular
@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[readRectangularOut])
-def getRectangular(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getRectangular(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_producto"))):
     statement = (
         select(rectangular.id_rec, especialidad.nombre.label("especialidad"),CategoriasProd.descripcion.label("categoria"), rectangular.precio)
         .join(CategoriasProd, rectangular.id_cat == CategoriasProd.id_cat)
@@ -30,7 +30,7 @@ def getRectangular(session: Session = Depends(get_session), username: str = Depe
     ) for r in results]
     
 @router.get("/{id_rec}", response_model=readRectangularOut)
-def getRectangularById(id_rec: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getRectangularById(id_rec: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement = (
         select(rectangular.id_rec, especialidad.nombre.label("especialidad"),CategoriasProd.descripcion.label("categoria"), rectangular.precio)
         .join(CategoriasProd, rectangular.id_cat == CategoriasProd.id_cat)
@@ -49,7 +49,7 @@ def getRectangularById(id_rec: int, session: Session = Depends(get_session), use
     )
     
 @router.put("/{id_rec}")
-def updateRectangular(id_rec: int, rectangular_data: createRectangular, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def updateRectangular(id_rec: int, rectangular_data: createRectangular, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_producto"))):
     rectangular_item = session.get(rectangular, id_rec)
     if not rectangular_item:
         return {"message": "Rectangular no encontrado"}
@@ -64,7 +64,7 @@ def updateRectangular(id_rec: int, rectangular_data: createRectangular, session:
     return {"message": "Rectangular actualizado correctamente"}
 
 @router.post("/")
-def createRectangular(rectangular_data: createRectangular, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def createRectangulares(rectangular_data: createRectangular, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_producto"))):
     new_rectangular = rectangular(
         id_esp=rectangular_data.id_esp,
         id_cat=rectangular_data.id_cat,
@@ -76,7 +76,7 @@ def createRectangular(rectangular_data: createRectangular, session: Session = De
     return {"message": "Rectangular creado correctamente"}
 
 @router.delete("/{id_rec}")
-def deleteRectangular(id_rec: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def deleteRectangular(id_rec: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_producto"))):
     rectangular_item = session.get(rectangular, id_rec)
     if not rectangular_item:
         return {"message": "Rectangular no encontrado"}

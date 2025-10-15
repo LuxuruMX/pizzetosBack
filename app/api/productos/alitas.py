@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.permissions import require_permission  # ← Importar require_permission
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.alitasModel import alitas as Alita
 from app.schemas.alitasSchema import readAlitasOut, createAlitas
@@ -31,11 +31,7 @@ def getAlitas(
     
     
 @router.get("/{id_alis}", response_model=readAlitasOut)
-def getAlitasById(
-    id_alis: int, 
-    session: Session = Depends(get_session), 
-    _: None = Depends(require_permission("ver_producto"))  # ← Permiso para VER
-):
+def getAlitasById(id_alis: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement = (
         select(Alita.id_alis, Alita.orden, Alita.precio, CategoriasProd.descripcion.label("categoria"))
         .join(CategoriasProd, Alita.id_cat == CategoriasProd.id_cat)
@@ -54,12 +50,7 @@ def getAlitasById(
     
     
 @router.put("/{id_alis}")
-def updateAlitas(
-    id_alis: int, 
-    alitas: createAlitas, 
-    session: Session = Depends(get_session), 
-    _: None = Depends(require_permission("modificar_producto"))  # ← Permiso para MODIFICAR
-):
+def updateAlitas(id_alis: int, alitas: createAlitas, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_producto"))):
     alita = session.get(Alita, id_alis)
     if not alita:
         return {"message": "Alitas no encontradas"}

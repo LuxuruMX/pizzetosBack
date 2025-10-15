@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.costillasModel import costillas
 from app.schemas.costillasSchema import readCostillasOut, createCostillas
@@ -12,7 +12,7 @@ from app.models.categoriaModel import categoria as CategoriasProd
 router = APIRouter()
 
 @router.get("/", response_model=List[readCostillasOut])
-def getCostillas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getCostillas(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_producto"))):
     statement = (
         select(costillas.id_cos, costillas.orden, costillas.precio, CategoriasProd.descripcion.label("categoria"))
         .join(CategoriasProd, costillas.id_cat == CategoriasProd.id_cat)
@@ -28,7 +28,7 @@ def getCostillas(session: Session = Depends(get_session), username: str = Depend
     
 
 @router.get("/{id_cos}", response_model=readCostillasOut)
-def getCostillasById(id_cos: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getCostillasById(id_cos: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement = (
         select(costillas.id_cos, costillas.orden, costillas.precio, CategoriasProd.descripcion.label("categoria"))
         .join(CategoriasProd, costillas.id_cat == CategoriasProd.id_cat)
@@ -48,7 +48,7 @@ def getCostillasById(id_cos: int, session: Session = Depends(get_session), usern
 
 
 @router.put("/{id_cos}")
-def updateCostillas(id_cos: int, costilla_data: createCostillas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def updateCostillas(id_cos: int, costilla_data: createCostillas, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_producto"))):
     costilla = session.get(costillas, id_cos)
     if not costilla:
         return {"message": "Costillas no encontradas"}
@@ -65,7 +65,7 @@ def updateCostillas(id_cos: int, costilla_data: createCostillas, session: Sessio
 
 
 @router.post("/")
-def createCostilla(costilla: createCostillas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def createCostilla(costilla: createCostillas, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_producto"))):
     cost=costillas(
         orden= costilla.orden,
         precio= costilla.precio,
@@ -78,7 +78,7 @@ def createCostilla(costilla: createCostillas, session: Session = Depends(get_ses
 
 
 @router.delete("/{id_cos}")
-def deleteCostillas(id_cos: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def deleteCostillas(id_cos: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_producto"))):
     costilla = session.get(costillas, id_cos)
     if not costilla:
         return {"message": "Costillas no encontradas"}

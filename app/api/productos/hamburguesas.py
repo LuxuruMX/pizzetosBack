@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.hamburguesasModel import hamburguesas
 from app.schemas.hamburguesasSchema import createHamburguesas, readHamburguesasOut
@@ -12,7 +12,7 @@ from app.models.categoriaModel import categoria as CategoriasProd
 router = APIRouter()
 
 @router.get("/", response_model=List[readHamburguesasOut])
-def getHamburguesas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getHamburguesas(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_producto"))):
     statement=(
         select(hamburguesas.id_hamb, hamburguesas.paquete, hamburguesas.precio, CategoriasProd.descripcion.label("categoria"))
         .join(CategoriasProd, hamburguesas.id_cat == CategoriasProd.id_cat)
@@ -26,7 +26,7 @@ def getHamburguesas(session: Session = Depends(get_session), username: str = Dep
     ) for r in results]
 
 @router.get("/{id_hamb}", response_model=readHamburguesasOut)
-def getHamburguesaById(id_hamb: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getHamburguesaById(id_hamb: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement = (
         select(hamburguesas.id_hamb, hamburguesas.paquete, hamburguesas.precio, CategoriasProd.descripcion.label("categoria"))
         .join(CategoriasProd, hamburguesas.id_cat == CategoriasProd.id_cat)
@@ -44,7 +44,7 @@ def getHamburguesaById(id_hamb: int, session: Session = Depends(get_session), us
     return {"message": "Hamburguesa no encontrada"}
 
 @router.put("/{id_hamb}")
-def updateHamburguesa(id_hamb: int, hamburguesa_data: createHamburguesas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def updateHamburguesa(id_hamb: int, hamburguesa_data: createHamburguesas, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_producto"))):
     hamburguesa_item = session.get(hamburguesas, id_hamb)
     if not hamburguesa_item:
         return {"message": "Hamburguesa no encontrada"}
@@ -60,7 +60,7 @@ def updateHamburguesa(id_hamb: int, hamburguesa_data: createHamburguesas, sessio
     return {"message": "Hamburguesa actualizada correctamente"}
 
 @router.post("/")
-def createHamburguesa(hamburguesa_data: createHamburguesas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def createHamburguesa(hamburguesa_data: createHamburguesas, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_producto"))):
     nueva_hamburguesa = hamburguesas(
         paquete= hamburguesa_data.paquete,
         precio= hamburguesa_data.precio,
@@ -72,7 +72,7 @@ def createHamburguesa(hamburguesa_data: createHamburguesas, session: Session = D
     return {"message": "Hamburguesa registrada correctamente"}
 
 @router.delete("/{id_hamb}")
-def deleteHamburguesa(id_hamb: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def deleteHamburguesa(id_hamb: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_producto"))):
     
     hamburguesa_item = session.get(hamburguesas, id_hamb)
     if not hamburguesa_item:

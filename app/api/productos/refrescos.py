@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.refrescosModel import refrescos
 from app.schemas.refrescosSchema import createRefrescos, readRefrescosOut
@@ -13,7 +13,7 @@ from app.models.tamanosRefrescosModel import tamanosRefrescos
 router=APIRouter()
 
 @router.get("/", response_model=List[readRefrescosOut])
-def getRefrescos(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getRefrescos(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_producto"))):
     statement = (
         select(refrescos.id_refresco, refrescos.nombre, tamanosRefrescos.tamano.label("tamaño"), CategoriasProd.descripcion.label("categoria"))
         .join(tamanosRefrescos, refrescos.id_tamano == tamanosRefrescos.id_tamano)
@@ -28,7 +28,7 @@ def getRefrescos(session: Session = Depends(get_session), username: str = Depend
     ) for r in results]
     
 @router.get("/{id_refresco}", response_model=readRefrescosOut)
-def getRefrescosById(id_refresco: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getRefrescosById(id_refresco: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement = (
         select(refrescos.id_refresco, refrescos.nombre, tamanosRefrescos.tamano.label("tamaño"), CategoriasProd.descripcion.label("categoria"))
         .join(tamanosRefrescos, refrescos.id_tamano == tamanosRefrescos.id_tamano)
@@ -47,7 +47,7 @@ def getRefrescosById(id_refresco: int, session: Session = Depends(get_session), 
     return {"message": "Refresco no encontrado"}
 
 @router.put("/{id_refresco}")
-def updateRefresco(id_refresco: int, refresco: createRefrescos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def updateRefresco(id_refresco: int, refresco: createRefrescos, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_producto"))):
     refri = session.get(refrescos, id_refresco)
     if not refri:
         return {"message": "Refresco no encontrado"}
@@ -60,7 +60,7 @@ def updateRefresco(id_refresco: int, refresco: createRefrescos, session: Session
     return {"message": "Refresco actualizado correctamente"}
 
 @router.post("/")
-def createRefresco(refresco: createRefrescos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def createRefresco(refresco: createRefrescos, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_producto"))):
     refri=refrescos(
         nombre= refresco.nombre,
         id_tamano= refresco.id_tamano,
@@ -72,7 +72,7 @@ def createRefresco(refresco: createRefrescos, session: Session = Depends(get_ses
     return {"message" : "Refresco registrado correctamente"}
 
 @router.delete("/{id_refresco}")
-def deleteRefresco(id_refresco: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def deleteRefresco(id_refresco: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_producto"))):
     refri = session.get(refrescos, id_refresco)
     if not refri:
         return {"message": "Refresco no encontrado"}

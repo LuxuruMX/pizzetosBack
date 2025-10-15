@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 
 from app.models.especialidadModel import especialidad
@@ -15,21 +15,21 @@ router = APIRouter()
 
 
 @router.get("/",response_model=List[readEspecialidad])
-def getEspecialidades(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getEspecialidades(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_producto"))):
     statement=select(especialidad)
     results = session.exec(statement).all()
     return results
 
 
 @router.get("/{id_esp}", response_model=readEspecialidad)
-def getEspecialidadById(id_esp: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getEspecialidadById(id_esp: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     especialidad_item = session.get(especialidad, id_esp)
     if especialidad_item:
         return especialidad_item
     return {"message": "Especialidad no encontrada"}
 
 @router.put("/{id_esp}")
-def updateEspecialidad(id_esp: int, especialidad_data: createEspecialidad, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def updateEspecialidad(id_esp: int, especialidad_data: createEspecialidad, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_producto"))):
     especialidad_item = session.get(especialidad, id_esp)
     if not especialidad_item:
         return {"message": "Especialidad no encontrada"}
@@ -45,7 +45,7 @@ def updateEspecialidad(id_esp: int, especialidad_data: createEspecialidad, sessi
 
 
 @router.post("/")
-def createEspecialidad(especialidad_data: createEspecialidad, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def createEspecialidades(especialidad_data: createEspecialidad, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_producto"))):
     nueva_especialidad = especialidad(
         nombre= especialidad_data.nombre,
         descripcion= especialidad_data.descripcion
@@ -57,7 +57,7 @@ def createEspecialidad(especialidad_data: createEspecialidad, session: Session =
 
 
 @router.delete("/{id_esp}")
-def deleteEspecialidad(id_esp: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def deleteEspecialidad(id_esp: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_producto"))):
     especialidad_item = session.get(especialidad, id_esp)
     if not especialidad_item:
         return {"message": "Especialidad no encontrada"}

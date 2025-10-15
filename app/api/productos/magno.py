@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.magnoModel import magno
 from app.schemas.magnoSchema import readMagnoOut, createMagno
@@ -13,7 +13,7 @@ from app.models.especialidadModel import especialidad
 router = APIRouter()
 
 @router.get("/", response_model=List[readMagnoOut])
-def getMagno(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getMagno(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_producto"))):
     statement = (
         select(magno.id_magno, especialidad.nombre.label("especialidad"), refrescos.nombre.label("refresco"), magno.precio)
         .join(especialidad, magno.id_especialidad == especialidad.id_esp)
@@ -29,7 +29,7 @@ def getMagno(session: Session = Depends(get_session), username: str = Depends(ve
     ) for r in results]
     
 @router.get("/{id_magno}", response_model=readMagnoOut)
-def getMagnoById(id_magno: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getMagnoById(id_magno: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement = (
         select(magno.id_magno, especialidad.nombre.label("especialidad"), refrescos.nombre.label("refresco"), magno.precio)
         .join(especialidad, magno.id_especialidad == especialidad.id_esp)
@@ -48,7 +48,7 @@ def getMagnoById(id_magno: int, session: Session = Depends(get_session), usernam
     return {"message": "Magno no encontrado"}
 
 @router.put("/{id_magno}")
-def updateMagno(id_magno: int, mag: createMagno, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def updateMagno(id_magno: int, mag: createMagno, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_producto"))):
     magno_item = session.get(magno, id_magno)
     if not magno_item:
         return {"message": "Magno no encontrado"}
@@ -61,7 +61,7 @@ def updateMagno(id_magno: int, mag: createMagno, session: Session = Depends(get_
     return {"message": "Magno actualizado correctamente"}
 
 @router.post("/")
-def createMagnos(mag: createMagno, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def createMagnos(mag: createMagno, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_producto"))):
     magno_item = magno(
         id_especialidad= mag.id_especialidad,
         id_refresco= mag.id_refresco,
@@ -73,7 +73,7 @@ def createMagnos(mag: createMagno, session: Session = Depends(get_session), user
     return {"message" : "Magno registrado correctamente"}
 
 @router.delete("/{id_magno}")
-def deleteMagno(id_magno: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def deleteMagno(id_magno: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_producto"))):
     magno_item = session.get(magno, id_magno)
     if not magno_item:
         return {"message": "Magno no encontrado"}

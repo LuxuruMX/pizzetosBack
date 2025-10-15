@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.mariscosModel import mariscos
 from app.schemas.mariscosSchema import readMariscosOut, createMariscos
@@ -13,7 +13,7 @@ from app.models.tamanosPizzasModel import tamanosPizzas
 router = APIRouter()
 
 @router.get("/",response_model=List[readMariscosOut])
-def get_mariscos(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def get_mariscos(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_producto"))):
     statement = (
         select(
             mariscos.id_maris,
@@ -35,7 +35,7 @@ def get_mariscos(session: Session = Depends(get_session), username: str = Depend
     ) for r in results]
 
 @router.get("/{id_maris}", response_model=readMariscosOut)
-def get_mariscos_by_id(id_maris: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def get_mariscos_by_id(id_maris: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement = (
         select(
             mariscos.id_maris,
@@ -60,7 +60,7 @@ def get_mariscos_by_id(id_maris: int, session: Session = Depends(get_session), u
     return {"message": "Mariscos no encontrados"}
 
 @router.put("/{id_maris}")
-def update_mariscos(id_maris: int, mariscos_data: createMariscos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def update_mariscos(id_maris: int, mariscos_data: createMariscos, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_producto"))):
     marisco = session.get(mariscos, id_maris)
     if not marisco:
         return {"message": "Mariscos no encontrados"}
@@ -74,7 +74,7 @@ def update_mariscos(id_maris: int, mariscos_data: createMariscos, session: Sessi
     return {"message": "Mariscos actualizados correctamente"}
 
 @router.post("/")
-def create_mariscos(mariscos_data: createMariscos, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def create_mariscos(mariscos_data: createMariscos, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_producto"))):
     marisco = mariscos(
         nombre=mariscos_data.nombre,
         descripcion=mariscos_data.descripcion,
@@ -87,7 +87,7 @@ def create_mariscos(mariscos_data: createMariscos, session: Session = Depends(ge
     return {"message": "Mariscos registrados correctamente"}
 
 @router.delete("/{id_maris}")
-def delete_mariscos(id_maris: int, session: Session = Depends(get_session), token: str = Depends(verify_token)):
+def delete_mariscos(id_maris: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_producto"))):
     marisco = session.get(mariscos, id_maris)
     if not marisco:
         return {"message": "Mariscos no encontrados"}

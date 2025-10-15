@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.api.productos import (alitas, 
                                costillas, 
@@ -25,19 +25,19 @@ router=APIRouter()
 
 
 @router.get("/categoria", tags=["Categoria"], response_model=List[CategoriasProd])
-def getCategoria(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getCategoria(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement=select(CategoriasProd)
     results = session.exec(statement).all()
     return results
 
 @router.get("/tamanos-pizza", tags=["Tamaños Pizza"], response_model=List[tamanosPizzas])
-def getTamanosPizza(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getTamanosPizza(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement=select(tamanosPizzas)
     results = session.exec(statement).all()
     return results
 
 @router.get("/tamanos-refresco", tags=["Tamaños Refresco"], response_model=List[tamanosRefrescos])
-def getTamanosRefresco(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getTamanosRefresco(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement=select(tamanosRefrescos)
     results = session.exec(statement).all()
     return results

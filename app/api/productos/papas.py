@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.papasModel import papas
 from app.schemas.papasSchema import readPapasOut, createPapas
@@ -12,7 +12,7 @@ from app.models.categoriaModel import categoria as CategoriasProd
 router = APIRouter()
 
 @router.get("/", response_model=List[readPapasOut])
-def getPapas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getPapas(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_producto"))):
     statement = (
         select(papas.id_papa, papas.orden, papas.precio, CategoriasProd.descripcion.label("categoria"))
         .join(CategoriasProd, papas.id_cat == CategoriasProd.id_cat)
@@ -27,7 +27,7 @@ def getPapas(session: Session = Depends(get_session), username: str = Depends(ve
     ) for r in results]
     
 @router.get("/{id_papa}", response_model=readPapasOut)
-def getPapasById(id_papa: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getPapasById(id_papa: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement = (
         select(papas.id_papa, papas.orden, papas.precio, CategoriasProd.descripcion.label("categoria"))
         .join(CategoriasProd, papas.id_cat == CategoriasProd.id_cat)
@@ -45,7 +45,7 @@ def getPapasById(id_papa: int, session: Session = Depends(get_session), username
     return {"message": "Papas no encontradas"}
 
 @router.put("/{id_papa}")
-def updatePapas(id_papa: int, papas_data: createPapas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def updatePapas(id_papa: int, papas_data: createPapas, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_producto"))):
     papa = session.get(papas, id_papa)
     if not papa:
         return {"message": "Papas no encontradas"}
@@ -58,7 +58,7 @@ def updatePapas(id_papa: int, papas_data: createPapas, session: Session = Depend
     return {"message": "Papas actualizadas correctamente"}
 
 @router.post("/")
-def createPapasEndpoint(papas_data: createPapas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def createPapasEndpoint(papas_data: createPapas, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_producto"))):
     new_papa = papas(
         orden=papas_data.orden,
         precio=papas_data.precio,
@@ -70,7 +70,7 @@ def createPapasEndpoint(papas_data: createPapas, session: Session = Depends(get_
     return {"message": "Papas creadas correctamente"}
 
 @router.delete("/{id_papa}")
-def deletePapas(id_papa: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def deletePapas(id_papa: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_producto"))):
     papa = session.get(papas, id_papa)
     if not papa:
         return {"message": "Papas no encontradas"}
