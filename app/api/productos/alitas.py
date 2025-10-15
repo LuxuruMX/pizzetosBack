@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission  # ← Importar require_permission
 
 from app.models.alitasModel import alitas as Alita
 from app.schemas.alitasSchema import readAlitasOut, createAlitas
@@ -12,7 +12,10 @@ from app.models.categoriaModel import categoria as CategoriasProd
 router = APIRouter()
 
 @router.get("/", response_model=List[readAlitasOut])
-def getAlitas(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getAlitas(
+    session: Session = Depends(get_session), 
+    _: None = Depends(require_permission("ver_producto"))  # ← Permiso para VER
+):
     statement = (
         select(Alita.id_alis, Alita.orden, Alita.precio, CategoriasProd.descripcion.label("categoria"))
         .join(CategoriasProd, Alita.id_cat == CategoriasProd.id_cat)
@@ -28,7 +31,11 @@ def getAlitas(session: Session = Depends(get_session), username: str = Depends(v
     
     
 @router.get("/{id_alis}", response_model=readAlitasOut)
-def getAlitasById(id_alis: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getAlitasById(
+    id_alis: int, 
+    session: Session = Depends(get_session), 
+    _: None = Depends(require_permission("ver_producto"))  # ← Permiso para VER
+):
     statement = (
         select(Alita.id_alis, Alita.orden, Alita.precio, CategoriasProd.descripcion.label("categoria"))
         .join(CategoriasProd, Alita.id_cat == CategoriasProd.id_cat)
@@ -47,7 +54,12 @@ def getAlitasById(id_alis: int, session: Session = Depends(get_session), usernam
     
     
 @router.put("/{id_alis}")
-def updateAlitas(id_alis: int, alitas: createAlitas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def updateAlitas(
+    id_alis: int, 
+    alitas: createAlitas, 
+    session: Session = Depends(get_session), 
+    _: None = Depends(require_permission("modificar_producto"))  # ← Permiso para MODIFICAR
+):
     alita = session.get(Alita, id_alis)
     if not alita:
         return {"message": "Alitas no encontradas"}
@@ -61,19 +73,28 @@ def updateAlitas(id_alis: int, alitas: createAlitas, session: Session = Depends(
 
 
 @router.post("/")
-def createAlitas(alitas: createAlitas, session: Session = Depends(get_session), username: str = Depends(verify_token)):
-    alita=Alita(
-        orden= alitas.orden,
+def createAlitas(
+    alitas: createAlitas, 
+    session: Session = Depends(get_session), 
+    _: None = Depends(require_permission("crear_producto"))  # ← Permiso para CREAR
+):
+    alita = Alita(
+        orden=alitas.orden,
         precio=alitas.precio,
         id_cat=alitas.id_cat
     )
     session.add(alita)
     session.commit()
     session.refresh(alita)
-    return {"message" : "Alitas registradas correctamente"}
+    return {"message": "Alitas registradas correctamente"}
+
 
 @router.delete("/{id_alis}")
-def deleteAlitas(id_alis: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def deleteAlitas(
+    id_alis: int, 
+    session: Session = Depends(get_session), 
+    _: None = Depends(require_permission("eliminar_producto"))  # ← Permiso para ELIMINAR
+):
     alita = session.get(Alita, id_alis)
     if not alita:
         return {"message": "Alitas no encontradas"}
