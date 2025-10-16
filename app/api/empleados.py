@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
-from typing import List, Optional
+from typing import List
 from app.db.session import get_session
 from app.models.empleadoModel import Empleados
 from app.schemas.empleadoSchema import readEmpleadoNoPass, createEmpleado
@@ -8,13 +8,20 @@ from argon2 import PasswordHasher
 from app.core.dependency import verify_token
 
 from app.models.cargoModel import Cargos
-
+from app.schemas.cargoSchema import readCargo
 
 from app.models.sucursalModel import Sucursal
 
 
 router = APIRouter()
 ph = PasswordHasher()
+
+
+@router.get("/cargo", response_model=List[readCargo])
+def getCargos(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    statement = select(Cargos)
+    results = session.exec(statement).all()
+    return results
 
 
 
