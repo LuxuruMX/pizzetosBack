@@ -5,15 +5,16 @@ from datetime import datetime
 
 class createGastos(BaseModel):
     id_suc: int
-    nombre: str = Field(min_length=3, max_length=255)
+    descripcion: str = Field(min_length=3, max_length=255)
     precio: Decimal
-    cantidad: Decimal
 
 
 class readGastos(BaseModel):
     id_gastos: int
-    id_suc: int
-    nombre: str
+    sucursal: str
+    descripcion: str
     precio: Decimal
     fecha: datetime
-    cantidad: Decimal
+    evaluado: bool
+    class Config:
+        orm_mode = True
