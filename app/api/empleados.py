@@ -61,8 +61,14 @@ def getEmpleadoById(id_emp: int, session: Session = Depends(get_session), userna
 
 @router.post("/")
 def addEmpleado(empleado: createEmpleado, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+    # Si se proporcionó nickName, comprobar si ya existe
+    if empleado.nickName:
+        existing = session.exec(select(Empleados).where(Empleados.nickName == empleado.nickName)).first()
+        if existing:
+            return {"message": "El nickName ya existe, elija otro usuario"}
+
     hashed_password = ph.hash(empleado.password) if empleado.password else None
-    
+
     db_empleado = Empleados(
         nombre=empleado.nombre,
         direccion=empleado.direccion,
@@ -77,6 +83,14 @@ def addEmpleado(empleado: createEmpleado, session: Session = Depends(get_session
     session.commit()
     session.refresh(db_empleado)
     return {"message" : "usuario registrado"}
+
+
+
+
+
+
+
+
 
 
 @router.put("/{id_emp}", response_model=readEmpleadoNoPass)
