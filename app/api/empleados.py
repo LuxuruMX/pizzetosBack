@@ -5,7 +5,7 @@ from app.db.session import get_session
 from app.models.empleadoModel import Empleados
 from app.schemas.empleadoSchema import readEmpleadoNoPass, createEmpleado
 from argon2 import PasswordHasher
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.cargoModel import Cargos
 from app.schemas.cargoSchema import readCargo
@@ -18,7 +18,7 @@ ph = PasswordHasher()
 
 
 @router.get("/cargo", response_model=List[readCargo])
-def getCargos(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getCargos(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_empleado"))):
     statement = select(Cargos)
     results = session.exec(statement).all()
     return results
@@ -26,7 +26,7 @@ def getCargos(session: Session = Depends(get_session), username: str = Depends(v
 
 
 @router.get("/", response_model=List[readEmpleadoNoPass])
-def get_empleados(session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def get_empleados(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_empleado"))):
     statement = (
         select(Empleados.id_emp,Empleados.nombre, Empleados.direccion, Empleados.telefono, Cargos.nombre.label("cargo"), Sucursal.nombre.label("sucursal"), Empleados.nickName, Empleados.status)
         .join(Cargos, Empleados.id_ca == Cargos.id_ca)
@@ -36,7 +36,7 @@ def get_empleados(session: Session = Depends(get_session), username: str = Depen
     return results
 
 @router.get("/{id_emp}", response_model=readEmpleadoNoPass)
-def getEmpleadoById(id_emp: int, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def getEmpleadoById(id_emp: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_empleado", "modificar_empleado"))):
     statement = (
         select(Empleados.id_emp,Empleados.nombre, Empleados.direccion, Empleados.telefono, Cargos.nombre.label("cargo"), Sucursal.nombre.label("sucursal"), Empleados.nickName, Empleados.status)
         .join(Cargos, Empleados.id_ca == Cargos.id_ca)
@@ -60,7 +60,7 @@ def getEmpleadoById(id_emp: int, session: Session = Depends(get_session), userna
 
 
 @router.post("/")
-def addEmpleado(empleado: createEmpleado, session: Session = Depends(get_session), username: str = Depends(verify_token)):
+def addEmpleado(empleado: createEmpleado, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_empleado"))):
     # Si se proporcionó nickName, comprobar si ya existe
     if empleado.nickName:
         existing = session.exec(select(Empleados).where(Empleados.nickName == empleado.nickName)).first()
@@ -85,20 +85,12 @@ def addEmpleado(empleado: createEmpleado, session: Session = Depends(get_session
     return {"message" : "usuario registrado"}
 
 
-
-
-
-
-
-
-
-
 @router.put("/{id_emp}", response_model=readEmpleadoNoPass)
 def updateEmpleado(
     id_emp: int, 
     empleado: createEmpleado, 
     session: Session = Depends(get_session), 
-    username: str = Depends(verify_token)
+    _: None = Depends(require_permission("modificar_empleado"))
 ):
     db_empleado = session.get(Empleados, id_emp)
     if not db_empleado:
@@ -145,7 +137,7 @@ def updateEmpleado(
 def toggleEmpleadoStatus(
     id_emp: int,
     session: Session = Depends(get_session),
-    username: str = Depends(verify_token)
+    _: None = Depends(require_permission("modificar_empleado"))
 ):
     db_empleado = session.get(Empleados, id_emp)
     if not db_empleado:
@@ -166,7 +158,7 @@ def toggleEmpleadoStatus(
 def deleteEmpleado(
     id_emp: int, 
     session: Session = Depends(get_session), 
-    username: str = Depends(verify_token)
+    _: None = Depends(require_permission("eliminar_empleado"))
 ):
     db_empleado = session.get(Empleados, id_emp)
     if not db_empleado:

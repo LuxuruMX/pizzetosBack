@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.sucursalModel import Sucursal
 from app.schemas.sucursalSchema import readSucursal, createSucursal
@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[readSucursal])
-def getSucursales(session: Session = Depends(get_session)):
+def getSucursales(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_recurso"))):
     statement = select(Sucursal)
     results = session.exec(statement).all()
     return [readSucursal(
@@ -24,7 +24,7 @@ def getSucursales(session: Session = Depends(get_session)):
     
     
 @router.get("/{id_suc}")
-def getSucursalById(id_suc: int, session: Session = Depends(get_session)):
+def getSucursalById(id_suc: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_recurso", "modificar_recurso"))):
     statement = (
         select(Sucursal)
         .where(Sucursal.id_suc == id_suc)
@@ -41,7 +41,7 @@ def getSucursalById(id_suc: int, session: Session = Depends(get_session)):
 
 
 @router.post("/")
-def createSucursales(sucursal: createSucursal, session: Session = Depends(get_session)):
+def createSucursales(sucursal: createSucursal, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_recurso"))):
     statement = Sucursal(
         nombre=sucursal.nombre,
         direccion=sucursal.direccion,
@@ -54,7 +54,7 @@ def createSucursales(sucursal: createSucursal, session: Session = Depends(get_se
 
 
 @router.delete("/")
-def deleteSucursal(id_suc: int, session: Session = Depends(get_session)):
+def deleteSucursal(id_suc: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_recurso"))):
     statement = session.get(Sucursal, id_suc)
     if not statement:
         return {"Message": "Sucursal no encontrada"}
@@ -65,7 +65,7 @@ def deleteSucursal(id_suc: int, session: Session = Depends(get_session)):
 
 
 @router.put("/{id_suc}")
-def updateSucursal(sucursal: createSucursal, id_suc: int, session: Session = Depends(get_session)):
+def updateSucursal(sucursal: createSucursal, id_suc: int, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_recurso"))):
     statement = session.get(Sucursal, id_suc)
     if not statement:
         return {"Message": "Sucursal no encontrada"}

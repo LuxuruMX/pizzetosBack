@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
-from app.core.dependency import verify_token
+from app.core.permissions import require_permission, require_any_permission
 
 from app.models.cargoModel import Cargos
 
@@ -15,7 +15,7 @@ router = APIRouter()
 
 ########################################################################################
 @router.get("/", response_model=List[readPermisosWhitCargo])
-def getCargo(session: Session = Depends(get_session)):
+def getCargo(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_recurso"))):
     statement = (
         select(permisos.id_permiso,
                permisos.id_cargo,  # ← AGREGAR ESTO
@@ -72,7 +72,7 @@ def getCargo(session: Session = Depends(get_session)):
 
 ########################################################################################
 @router.get("/{id_ca}", response_model=readPermisosWhitCargo)
-def getCargoById (id_ca: int, session: Session = Depends(get_session)):
+def getCargoById (id_ca: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_recurso", "modificar_recurso"))):
     statement = (
         select(permisos.id_permiso,
                Cargos.nombre.label("cargo"),
@@ -134,7 +134,8 @@ def getCargoById (id_ca: int, session: Session = Depends(get_session)):
 @router.post("/")
 def createCargoConPermiso(
     data: createCargoConPermisos, 
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: None = Depends(require_permission("crear_recurso"))
 ):
     existing_cargo = session.exec(
         select(Cargos).where(Cargos.nombre == data.nombre)
@@ -183,7 +184,8 @@ def createCargoConPermiso(
 def updateCargoConPermisos(
     id_ca: int,
     data: createCargoConPermisos, 
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: None = Depends(require_permission("modificar_recurso"))
 ):
     cargo = session.get(Cargos, id_ca)
     if not cargo:
@@ -260,7 +262,8 @@ def updateCargoConPermisos(
 @router.delete("/{id_ca}")
 def deleteCargoConPermisos(
     id_ca: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: None = Depends(require_permission("eliminar_recurso"))
 ):
     cargo = session.get(Cargos, id_ca)
     if not cargo:
