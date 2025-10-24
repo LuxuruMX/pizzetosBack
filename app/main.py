@@ -8,13 +8,14 @@ from app.api import (login,
                     clientes,
                     ventas,
                     recursos,
-                    gastos)
+                    gastos,
+                    pos)
 
 
 app = FastAPI(
     title="Pizzetos",
     description="Backend de pizzetos bien chingon",
-    version="0.2.0"
+    version="1.0.0"
 )
 
 app.add_middleware(
@@ -43,3 +44,4 @@ app.include_router(clientes.router, prefix="/clientes", tags=["clientes"])
 app.include_router(ventas.router, prefix="/ventas", tags=["ventas"])
 app.include_router(recursos.router, prefix="/recursos", tags=["recursos"])
 app.include_router(gastos.router, prefix="/gastos", tags=["gastos"])
+app.include_router(pos.router, prefix="/pos", tags=["punto de venta"])
