@@ -16,6 +16,7 @@ class readVenta(BaseModel):
     id_cliente: int
     fecha_hora: datetime
     total: Decimal
+    status:int
     
     
 class VentaRequest(BaseModel):
@@ -32,4 +33,3 @@ class VentaResponse(BaseModel):
     fecha_hora: datetime
     total: Decimal
     detalles: List[dict]
-    mensaje: str
