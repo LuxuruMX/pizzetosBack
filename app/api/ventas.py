@@ -14,7 +14,8 @@ from app.api.productos import (alitas,
                                magno, 
                                spaguetty,
                                rectangular,
-                               barra)
+                               barra,
+                               pizzas)
 
 from app.models.categoriaModel import categoria as CategoriasProd
 from app.models.tamanosPizzasModel import tamanosPizzas
@@ -55,3 +56,4 @@ router.include_router(magno.router, prefix="/magno", tags=["Magno"])
 router.include_router(spaguetty.router, prefix="/spaguetty", tags=["Spaguetty"])
 router.include_router(rectangular.router, prefix="/rectangular", tags=["Rectangular"])
 router.include_router(barra.router, prefix="/barra", tags=["Barra"])
+router.include_router(pizzas.router, prefix="/pizzas", tags=["Pizzas"])
