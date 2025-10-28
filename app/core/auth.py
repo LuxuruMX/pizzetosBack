@@ -4,7 +4,7 @@ from argon2 import PasswordHasher, exceptions as argon2_exceptions
 
 SECRET_KEY = "qscesz"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hora
+ACCESS_TOKEN_EXPIRE_MINUTES = 180  # 1 hora
 
 ph = PasswordHasher()
 
