@@ -9,7 +9,7 @@ class createPizza(BaseModel):
 
 class readPizzasOut(BaseModel):
     id_pizza: int
-    especialidad: int
-    tamaño: int
-    categoria: int
+    especialidad: str
+    tamaño: str
+    categoria: str
     

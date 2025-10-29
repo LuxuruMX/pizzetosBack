@@ -17,7 +17,7 @@ router = APIRouter()
 @router.get("/", response_model=List[readPizzasOut])
 def getPizzas(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_producto"))):
     statement = (
-        select(pizzas.id_pizza, especialidad.id_esp.label("especialidad"), tamanosPizzas.id_tamañop.label("tamaño"), categoria.id_cat.label("categoria"))
+        select(pizzas.id_pizza, especialidad.nombre.label("especialidad"), tamanosPizzas.tamano.label("tamaño"), categoria.descripcion.label("categoria"))
         .join(especialidad, pizzas.id_esp == especialidad.id_esp)
         .join(tamanosPizzas, pizzas.id_tamano == tamanosPizzas.id_tamañop)
         .join(categoria, pizzas.id_cat == categoria.id_cat)
@@ -68,7 +68,7 @@ def deletePizza(id_pizza: int, session: Session = Depends(get_session), _: None 
 @router.get("/{id_pizza}", response_model=readPizzasOut)
 def getPizzaById(id_pizza: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement = (
-        select(pizzas.id_pizza, especialidad.id_esp.label("especialidad"), tamanosPizzas.id_tamañop.label("tamaño"), categoria.id_cat.label("categoria"))
+        select(pizzas.id_pizza, especialidad.nombre.label("especialidad"), tamanosPizzas.tamano.label("tamaño"), categoria.descripcion.label("categoria"))
         .join(especialidad, pizzas.id_esp == especialidad.id_esp)
         .join(tamanosPizzas, pizzas.id_tamano == tamanosPizzas.id_tamañop)
         .join(categoria, pizzas.id_cat == categoria.id_cat)

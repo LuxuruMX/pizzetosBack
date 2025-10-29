@@ -16,7 +16,8 @@ from app.schemas.priceSchema import (PriceCostilla,
                                      PricePaquete1,
                                      PricePaquete2,
                                      PricePaquete3,
-                                     PriceMagno)
+                                     PriceMagno,
+                                     PricePizza)
 
 from app.models.especialidadModel import especialidad
 from app.models.tamanosPizzasModel import tamanosPizzas
@@ -33,6 +34,7 @@ from app.models.mariscosModel import mariscos
 from app.models.refrescosModel import refrescos
 from app.models.paquetesModel import paquete1, paquete2, paquete3
 from app.models.magnoModel import magno
+from app.models.pizzasModel import pizzas
 
 
 router = APIRouter()
@@ -255,6 +257,25 @@ def get_price_magno(
     result = session.exec(statement).all()
     return [PriceMagno(
         id_magno=r.id_magno,
+        nombre=r.nombre,
+        precio=r.precio
+    ) for r in result]
+
+@router.get("/pizzas")
+def get_price_pizzas(
+    session: Session = Depends(get_session),
+    _: None = Depends(require_permission("ver_producto"))
+):
+    statement = (
+        select(pizzas.id_pizza, especialidad.nombre.label("nombre"), tamanosPizzas.precio)
+        .join(especialidad, pizzas.id_esp == especialidad.id_esp)
+        .join(tamanosPizzas, pizzas.id_tamano == tamanosPizzas.id_tamañop)
+        .order_by(pizzas.id_pizza)
+    
+    )
+    result = session.exec(statement).all()
+    return [PricePizza(
+        id_pizza=r.id_pizza,
         nombre=r.nombre,
         precio=r.precio
     ) for r in result]

@@ -65,3 +65,8 @@ class PriceMagno(BaseModel):
     id_magno: int
     nombre: str
     precio: Decimal
+
+class PricePizza(BaseModel):
+    id_pizza: int
+    nombre: str
+    precio: Decimal
