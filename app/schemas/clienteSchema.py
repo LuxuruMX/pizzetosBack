@@ -15,3 +15,7 @@ class readCliente(BaseModel):
     apellido: str
     direccion: str
     telefono: int
+
+class readClientePOS(BaseModel):
+    id_clie: int
+    nombre: str

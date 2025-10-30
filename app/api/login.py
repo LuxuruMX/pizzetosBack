@@ -52,7 +52,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = D
             "sub": empleado.nickName,
             "user_id": empleado.id_emp,
             "id_cargo": empleado.id_ca,
-            "permisos": permisos_dict  
+            "permisos": permisos_dict,
+            "sucursal": empleado.id_suc
         },
         expires_delta=access_token_expires
     )
