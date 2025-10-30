@@ -32,11 +32,12 @@ async def crear_venta(
         raise HTTPException(status_code=404, detail=f"Sucursal con ID {venta_request.id_suc} no encontrada")
 
     try:
+        # Usar el total que viene del frontend (ya incluye descuentos/promociones)
         nueva_venta = Venta(
             id_suc=venta_request.id_suc,
             id_cliente=venta_request.id_cliente,
             fecha_hora=datetime.now(),
-            total=Decimal("0.00")
+            total=Decimal(str(venta_request.total))
         )
         session.add(nueva_venta)
         session.flush()
@@ -45,7 +46,7 @@ async def crear_venta(
             nuevo_detalle = DetalleVenta(
                 id_venta=nueva_venta.id_venta,
                 cantidad=item.cantidad,
-                precio_unitario=Decimal("0.00"),
+                precio_unitario=Decimal(str(item.precio_unitario)),
                 id_hamb=item.id_hamb,
                 id_cos=item.id_cos,
                 id_alis=item.id_alis,
@@ -153,19 +154,25 @@ async def editar_venta(
         for detalle in detalles_antiguos:
             session.delete(detalle)
         
-        # 2️⃣ Actualizar datos de la venta si cambiaron
+        # 2️⃣ Calcular el nuevo total desde los items recibidos
+        total_calculado = sum(
+            Decimal(str(item.precio_unitario)) * item.cantidad 
+            for item in venta_request.items
+        )
+        
+        # 3️⃣ Actualizar datos de la venta
         venta.id_suc = venta_request.id_suc
         venta.id_cliente = venta_request.id_cliente
-        venta.total = Decimal("0.00")  # Se actualizará con trigger
+        venta.total = total_calculado
         session.add(venta)
         session.flush()
         
-        # 3️⃣ Crear nuevos detalles
+        # 4️⃣ Crear nuevos detalles
         for item in venta_request.items:
             nuevo_detalle = DetalleVenta(
                 id_venta=id_venta,
                 cantidad=item.cantidad,
-                precio_unitario=Decimal("0.00"),  # será actualizado por trigger
+                precio_unitario=Decimal(str(item.precio_unitario)),
                 id_hamb=item.id_hamb,
                 id_cos=item.id_cos,
                 id_alis=item.id_alis,
@@ -184,10 +191,10 @@ async def editar_venta(
         
         session.commit()
         
-        # 4️⃣ Obtener venta actualizada
+        # 5️⃣ Obtener venta actualizada
         venta_actualizada = session.get(Venta, id_venta)
         
-        # 5️⃣ Obtener detalles actualizados
+        # 6️⃣ Obtener detalles actualizados
         statement = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
         detalles_db = session.exec(statement).all()
         
@@ -238,7 +245,7 @@ async def eliminar_venta(
 async def listar_ventas(
     session: Session = Depends(get_session),
     filtro: str = "hoy",
-    status: Optional[int] = None,  # Cambiado a Optional[int]
+    status: Optional[int] = None,
     id_suc: Optional[int] = None,
 ):
     try:
@@ -254,7 +261,7 @@ async def listar_ventas(
                 Venta.fecha_hora < hoy_fin
             )
 
-        if status is not None:  # Verificar que no sea None para evitar errores
+        if status is not None:
             statement = statement.where(Venta.status == status)
 
         # Filtrar por sucursal si se especifica
@@ -285,7 +292,7 @@ async def listar_ventas(
                 "fecha_hora": venta.fecha_hora,
                 "cliente": nombre_cliente,
                 "sucursal": nombre_sucursal,
-                "status": venta.status,  # Estado del pedido (número)
+                "status": venta.status,
                 "total": float(venta.total),
                 "cantidad_items": total_items,
                 "cantidad_productos": len(detalles)
@@ -295,7 +302,7 @@ async def listar_ventas(
             "ventas": ventas_resumidas,
             "total": len(ventas_resumidas),
             "filtro_aplicado": filtro,
-            "status_filtrado": status  # Ahora es un número
+            "status_filtrado": status
         }
 
     except Exception as e:
@@ -306,10 +313,10 @@ async def listar_ventas(
 @router.patch("/{id_venta}")
 async def actualizar_status_venta(
     id_venta: int,
-    status: int,  # Ahora recibe un entero directamente
+    status: int,
     session: Session = Depends(get_session)
 ):
-    # Opcional: Validar que el status esté en un rango permitido (por ejemplo, 0 a 2)
+    # Validar que el status esté en un rango permitido
     if status not in [0, 1, 2]:
         raise HTTPException(
             status_code=400,
@@ -322,7 +329,7 @@ async def actualizar_status_venta(
         raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
     
     try:
-        # Actualizar solo el status con el valor entero recibido
+        # Actualizar solo el status
         venta.status = status
         session.add(venta)
         session.commit()

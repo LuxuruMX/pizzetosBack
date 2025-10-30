@@ -46,6 +46,8 @@ class readDetalleVenta(BaseModel):
 
 class ItemVentaRequest(BaseModel):
     cantidad: int
+    precio_unitario: Decimal
+    
     id_hamb: Optional[int] = None
     id_cos: Optional[int] = None
     id_alis: Optional[int] = None

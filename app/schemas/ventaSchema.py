@@ -23,6 +23,7 @@ class VentaRequest(BaseModel):
     """Request completo para crear una venta"""
     id_suc: int
     id_cliente: int
+    total: Decimal
     items: List[ItemVentaRequest]
     
 class VentaResponse(BaseModel):
