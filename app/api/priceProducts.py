@@ -177,7 +177,7 @@ def get_price_refrescos(
     _: None = Depends(require_permission("ver_producto"))
 ):
     statement = (
-        select(refrescos.id_refresco, refrescos.nombre, tamanosRefrescos.precio)
+        select(refrescos.id_refresco, refrescos.nombre, tamanosRefrescos.precio, tamanosRefrescos.tamano)
         .join(tamanosRefrescos, refrescos.id_tamano == tamanosRefrescos.id_tamano)
         .order_by(refrescos.id_refresco)
     )
@@ -185,7 +185,8 @@ def get_price_refrescos(
     return [PriceRefresco(
         id_refresco=r.id_refresco,
         nombre=r.nombre,
-        precio=r.precio
+        precio=r.precio,
+        tamano=r.tamano
     ) for r in result]
     
     
@@ -267,7 +268,7 @@ def get_price_pizzas(
     _: None = Depends(require_permission("ver_producto"))
 ):
     statement = (
-        select(pizzas.id_pizza, especialidad.nombre.label("nombre"), tamanosPizzas.precio)
+        select(pizzas.id_pizza, especialidad.nombre.label("nombre"), tamanosPizzas.precio, tamanosPizzas.tamano)
         .join(especialidad, pizzas.id_esp == especialidad.id_esp)
         .join(tamanosPizzas, pizzas.id_tamano == tamanosPizzas.id_tamañop)
         .order_by(pizzas.id_pizza)
@@ -277,5 +278,6 @@ def get_price_pizzas(
     return [PricePizza(
         id_pizza=r.id_pizza,
         nombre=r.nombre,
-        precio=r.precio
+        precio=r.precio,
+        tamano=r.tamano
     ) for r in result]

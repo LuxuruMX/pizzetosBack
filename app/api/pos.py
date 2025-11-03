@@ -148,26 +148,22 @@ async def editar_venta(
             raise HTTPException(status_code=404, detail=f"Sucursal con ID {venta_request.id_suc} no encontrada")
     
     try:
-        # 1️⃣ Eliminar todos los detalles antiguos
         statement = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
         detalles_antiguos = session.exec(statement).all()
         for detalle in detalles_antiguos:
             session.delete(detalle)
         
-        # 2️⃣ Calcular el nuevo total desde los items recibidos
         total_calculado = sum(
             Decimal(str(item.precio_unitario)) * item.cantidad 
             for item in venta_request.items
         )
         
-        # 3️⃣ Actualizar datos de la venta
         venta.id_suc = venta_request.id_suc
         venta.id_cliente = venta_request.id_cliente
         venta.total = total_calculado
         session.add(venta)
         session.flush()
         
-        # 4️⃣ Crear nuevos detalles
         for item in venta_request.items:
             nuevo_detalle = DetalleVenta(
                 id_venta=id_venta,
@@ -191,14 +187,11 @@ async def editar_venta(
         
         session.commit()
         
-        # 5️⃣ Obtener venta actualizada
         venta_actualizada = session.get(Venta, id_venta)
         
-        # 6️⃣ Obtener detalles actualizados
         statement = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
         detalles_db = session.exec(statement).all()
         
-        # Construir respuesta
         detalles_respuesta = []
         for det in detalles_db:
             subtotal = det.cantidad * det.precio_unitario
@@ -225,7 +218,6 @@ async def eliminar_venta(
         raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
     
     try:
-        # Eliminar detalles primero (por la FK)
         statement = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
         detalles = session.exec(statement).all()
         for detalle in detalles:
@@ -252,7 +244,6 @@ async def listar_ventas(
         # Construir query base
         statement = select(Venta).order_by(Venta.fecha_hora.desc())
 
-        # Filtrar por fecha si es "hoy"
         if filtro == "hoy":
             hoy_inicio = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
             hoy_fin = hoy_inicio + timedelta(days=1)
@@ -264,14 +255,11 @@ async def listar_ventas(
         if status is not None:
             statement = statement.where(Venta.status == status)
 
-        # Filtrar por sucursal si se especifica
         if id_suc:
             statement = statement.where(Venta.id_suc == id_suc)
 
-        # Ejecutar query
         ventas = session.exec(statement).all()
 
-        # Construir respuesta resumida
         ventas_resumidas = []
         for venta in ventas:
             # Obtener cliente

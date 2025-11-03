@@ -45,6 +45,7 @@ class PriceRefresco(BaseModel):
     id_refresco: int
     nombre: str
     precio: Decimal
+    tamano: str
     
 class PricePaquete1(BaseModel):
     id_paquete1: int
@@ -70,3 +71,4 @@ class PricePizza(BaseModel):
     id_pizza: int
     nombre: str
     precio: Decimal
+    tamano: str
