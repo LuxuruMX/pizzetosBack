@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from typing import List
 from sqlalchemy import func
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 from app.db.session import get_session
 from app.models.clienteModel import Cliente, direccion
@@ -39,7 +39,7 @@ def getClientes(session: Session = Depends(get_session), _: None = Depends(requi
     return results
 
 
-@router.post("/", response_model=readCliente)
+@router.post("/")
 def create_Cliente(
     cliente: createCliente, 
     session: Session = Depends(get_session), 
@@ -79,7 +79,6 @@ def create_Cliente(
             detail=f"Error al crear cliente y direcciones: {str(e)}"
         )
 
-from fastapi import HTTPException, status
 
 @router.post("/{id_clie}/direcciones", response_model=readDireccion)
 def addDireccionCliente(
