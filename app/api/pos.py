@@ -22,6 +22,15 @@ async def listar_pedidos_cocina(
     status: Optional[int] = None,
     id_suc: Optional[int] = None,
 ):
+    """
+    Endpoint para mostrar pedidos activos en cocina.
+    Por defecto excluye pedidos completados (status=2).
+    
+    Parámetros de status:
+    - None (default): Muestra Esperando (0) y Preparando (1)
+    - 0: Solo Esperando
+    - 1: Solo Preparando
+    """
     try:
         # Construir query base
         statement = select(Venta).order_by(Venta.fecha_hora.asc())
@@ -37,7 +46,11 @@ async def listar_pedidos_cocina(
 
         # Filtro por status
         if status is not None:
+            # Si se especifica un status, solo mostrar ese
             statement = statement.where(Venta.status == status)
+        else:
+            # Por defecto, solo mostrar Esperando (0) y Preparando (1)
+            statement = statement.where(Venta.status.in_([0, 1]))
 
         # Filtro por sucursal
         if id_suc:
@@ -76,8 +89,8 @@ async def listar_pedidos_cocina(
                     if producto:
                         try:
                             from app.models.especialidadModel import especialidad
-                            especialidad = session.get(especialidad, producto.id_esp)
-                            nombre_especialidad = especialidad.nombre if especialidad else "Especialidad desconocida"
+                            especialidad_obj = session.get(especialidad, producto.id_esp)
+                            nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
                         except:
                             nombre_especialidad = f"Especialidad #{producto.id_esp}"
 
@@ -139,8 +152,8 @@ async def listar_pedidos_cocina(
                     if producto:
                         try:
                             from app.models.especialidadModel import especialidad
-                            especialidad = session.get(especialidad, producto.id_especialidad)
-                            nombre_especialidad = especialidad.nombre if especialidad else "Especialidad desconocida"
+                            especialidad_obj = session.get(especialidad, producto.id_especialidad)
+                            nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
                         except:
                             nombre_especialidad = f"Especialidad #{producto.id_especialidad}"
 
@@ -153,8 +166,8 @@ async def listar_pedidos_cocina(
                     if producto:
                         try:
                             from app.models.especialidadModel import especialidad
-                            especialidad = session.get(especialidad, producto.id_esp)
-                            nombre_especialidad = especialidad.nombre if especialidad else "Especialidad desconocida"
+                            especialidad_obj = session.get(especialidad, producto.id_esp)
+                            nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
                         except:
                             nombre_especialidad = f"Especialidad #{producto.id_esp}"
 
@@ -198,6 +211,160 @@ async def listar_pedidos_cocina(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
 
+@router.get("/pedidos-cocina/{id_venta}/detalle")
+async def obtener_detalle_pedido_cocina(
+    id_venta: int,
+    session: Session = Depends(get_session)
+):
+    """
+    Obtiene el detalle completo de un pedido para mostrar en modal.
+    Incluye toda la información de productos y cliente.
+    """
+    try:
+        # Obtener venta
+        venta = session.get(Venta, id_venta)
+        if not venta:
+            raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
+
+        # Obtener cliente
+        cliente = session.get(Cliente, venta.id_cliente)
+        nombre_cliente = cliente.nombre if cliente else "Desconocido"
+
+        # Obtener sucursal
+        sucursal = session.get(Sucursal, venta.id_suc)
+        nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
+
+        # Obtener detalles de productos
+        statement_detalles = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
+        detalles = session.exec(statement_detalles).all()
+
+        # Construir lista de productos con nombres
+        productos = []
+        for det in detalles:
+            producto_info = {
+                "cantidad": det.cantidad,
+                "precio_unitario": float(det.precio_unitario),
+                "subtotal": float(det.cantidad * det.precio_unitario),
+                "nombre": None,
+                "tipo": None
+            }
+
+            if det.id_pizza:
+                from app.models.pizzasModel import pizzas
+                producto = session.get(pizzas, det.id_pizza)
+                if producto:
+                    try:
+                        from app.models.especialidadModel import especialidad
+                        especialidad_obj = session.get(especialidad, producto.id_esp)
+                        nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
+                    except:
+                        nombre_especialidad = f"Especialidad #{producto.id_esp}"
+                    producto_info["nombre"] = nombre_especialidad
+                    producto_info["tipo"] = "Pizza"
+                
+            elif det.id_hamb:
+                from app.models.hamburguesasModel import hamburguesas
+                producto = session.get(hamburguesas, det.id_hamb)
+                if producto:
+                    producto_info["nombre"] = producto.paquete
+                    producto_info["tipo"] = "Hamburguesa"
+            
+            elif det.id_cos:
+                from app.models.costillasModel import costillas
+                producto = session.get(costillas, det.id_cos)
+                if producto:
+                    producto_info["nombre"] = producto.orden
+                    producto_info["tipo"] = "Costilla"
+            
+            elif det.id_alis:
+                from app.models.alitasModel import alitas
+                producto = session.get(alitas, det.id_alis)
+                if producto:
+                    producto_info["nombre"] = producto.orden
+                    producto_info["tipo"] = "Alitas"
+            
+            elif det.id_spag:
+                from app.models.spaguettyModel import spaguetty
+                producto = session.get(spaguetty, det.id_spag)
+                if producto:
+                    producto_info["nombre"] = producto.orden
+                    producto_info["tipo"] = "Spaghetti"
+            
+            elif det.id_papa:
+                from app.models.papasModel import papas
+                producto = session.get(papas, det.id_papa)
+                if producto:
+                    producto_info["nombre"] = producto.orden
+                    producto_info["tipo"] = "Papas"
+            
+            elif det.id_maris:
+                from app.models.mariscosModel import mariscos
+                producto = session.get(mariscos, det.id_maris)
+                if producto:
+                    producto_info["nombre"] = producto.nombre
+                    producto_info["tipo"] = "Mariscos"
+            
+            elif det.id_refresco:
+                from app.models.refrescosModel import refrescos
+                producto = session.get(refrescos, det.id_refresco)
+                if producto:
+                    producto_info["nombre"] = producto.nombre
+                    producto_info["tipo"] = "Refresco"
+            
+            elif det.id_magno:
+                from app.models.magnoModel import magno
+                producto = session.get(magno, det.id_magno)
+                if producto:
+                    try:
+                        from app.models.especialidadModel import especialidad
+                        especialidad_obj = session.get(especialidad, producto.id_especialidad)
+                        nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
+                    except:
+                        nombre_especialidad = f"Especialidad #{producto.id_especialidad}"
+                    producto_info["nombre"] = nombre_especialidad
+                    producto_info["tipo"] = "Magno"
+            
+            elif det.id_rec:
+                from app.models.rectangularModel import rectangular
+                producto = session.get(rectangular, det.id_rec)
+                if producto:
+                    try:
+                        from app.models.especialidadModel import especialidad
+                        especialidad_obj = session.get(especialidad, producto.id_esp)
+                        nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
+                    except:
+                        nombre_especialidad = f"Especialidad #{producto.id_esp}"
+                    producto_info["nombre"] = nombre_especialidad
+                    producto_info["tipo"] = "Rectangular"
+
+            productos.append(producto_info)
+
+        total_items = sum(det.cantidad for det in detalles)
+        tiempo_transcurrido = datetime.now() - venta.fecha_hora
+        minutos_transcurridos = int(tiempo_transcurrido.total_seconds() / 60)
+
+        return {
+            "id_venta": venta.id_venta,
+            "fecha_hora": venta.fecha_hora,
+            "tiempo_transcurrido_minutos": minutos_transcurridos,
+            "cliente": nombre_cliente,
+            "sucursal": nombre_sucursal,
+            "status": venta.status,
+            "status_texto": {
+                0: "Esperando",
+                1: "Preparando",
+                2: "Completado"
+            }.get(venta.status, "Desconocido"),
+            "total": float(venta.total),
+            "cantidad_items": total_items,
+            "cantidad_productos_diferentes": len(detalles),
+            "productos": productos
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener detalle del pedido: {str(e)}")
 
 @router.post("/")
 async def crear_venta(
@@ -482,33 +649,78 @@ async def listar_ventas(
     
     
     
-@router.patch("/{id_venta}")
-async def actualizar_status_venta(
+@router.patch("/{id_venta}/toggle-preparacion")
+async def toggle_preparacion(
     id_venta: int,
-    status: int,
     session: Session = Depends(get_session)
 ):
-    # Validar que el status esté en un rango permitido
-    if status not in [0, 1, 2]:
-        raise HTTPException(
-            status_code=400,
-            detail="Status inválido. Debe ser 0, 1 o 2."
-        )
-    
-    # Obtener venta
+
     venta = session.get(Venta, id_venta)
     if not venta:
         raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
     
     try:
-        # Actualizar solo el status
-        venta.status = status
+        if venta.status == 0:
+            venta.status = 1
+            mensaje = "Pedido marcado como 'Preparando'"
+        elif venta.status == 1:
+            venta.status = 0
+            mensaje = "Pedido regresado a 'Esperando'"
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="No se puede cambiar el estado. El pedido ya está completado."
+            )
+        
         session.add(venta)
         session.commit()
         session.refresh(venta)
         
-        return {"Message": "Status actualizado exitosamente"}
+        return {
+            "message": mensaje,
+            "id_venta": venta.id_venta,
+            "nuevo_status": venta.status,
+            "status_texto": {0: "Esperando", 1: "Preparando"}[venta.status]
+        }
     
+    except HTTPException:
+        raise
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al actualizar status: {str(e)}")
+
+
+@router.patch("/{id_venta}/completar")
+async def completar_pedido(
+    id_venta: int,
+    session: Session = Depends(get_session)
+):
+
+    venta = session.get(Venta, id_venta)
+    if not venta:
+        raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
+    
+    try:
+        if venta.status != 1:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Solo se pueden completar pedidos en preparación. Estado actual: {venta.status}"
+            )
+        
+        venta.status = 2
+        session.add(venta)
+        session.commit()
+        session.refresh(venta)
+        
+        return {
+            "message": "Pedido completado exitosamente",
+            "id_venta": venta.id_venta,
+            "nuevo_status": 2,
+            "status_texto": "Completado"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al completar pedido: {str(e)}")
