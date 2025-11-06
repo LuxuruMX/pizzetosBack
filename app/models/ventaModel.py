@@ -14,5 +14,5 @@ class Venta(SQLModel, table=True):
     id_cliente: int = Field(foreign_key="Clientes.id_clie")
     fecha_hora: datetime
     total: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
-    status: Optional[int] = Field(default=1)
+    status: Optional[int] = Field(default=0)
     

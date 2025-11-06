@@ -15,6 +15,190 @@ from app.models.sucursalModel import Sucursal
 router = APIRouter()
 
 
+@router.get("/pedidos-cocina")
+async def listar_pedidos_cocina(
+    session: Session = Depends(get_session),
+    filtro: str = "hoy",
+    status: Optional[int] = None,
+    id_suc: Optional[int] = None,
+):
+    try:
+        # Construir query base
+        statement = select(Venta).order_by(Venta.fecha_hora.asc())
+
+        # Filtro por fecha
+        if filtro == "hoy":
+            hoy_inicio = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            hoy_fin = hoy_inicio + timedelta(days=1)
+            statement = statement.where(
+                Venta.fecha_hora >= hoy_inicio,
+                Venta.fecha_hora < hoy_fin
+            )
+
+        # Filtro por status
+        if status is not None:
+            statement = statement.where(Venta.status == status)
+
+        # Filtro por sucursal
+        if id_suc:
+            statement = statement.where(Venta.id_suc == id_suc)
+
+        ventas = session.exec(statement).all()
+
+        pedidos_cocina = []
+        for venta in ventas:
+            # Obtener cliente
+            cliente = session.get(Cliente, venta.id_cliente)
+            nombre_cliente = cliente.nombre if cliente else "Desconocido"
+
+            # Obtener sucursal
+            sucursal = session.get(Sucursal, venta.id_suc)
+            nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
+
+            # Obtener detalles de productos
+            statement_detalles = select(DetalleVenta).where(DetalleVenta.id_venta == venta.id_venta)
+            detalles = session.exec(statement_detalles).all()
+
+            # Construir lista de productos con nombres
+            productos = []
+            for det in detalles:
+                producto_info = {
+                    "cantidad": det.cantidad,
+                    "precio_unitario": float(det.precio_unitario),
+                    "subtotal": float(det.cantidad * det.precio_unitario),
+                    "nombre": None,
+                    "tipo": None
+                }
+
+                if det.id_pizza:
+                    from app.models.pizzasModel import pizzas
+                    producto = session.get(pizzas, det.id_pizza)
+                    if producto:
+                        try:
+                            from app.models.especialidadModel import especialidad
+                            especialidad = session.get(especialidad, producto.id_esp)
+                            nombre_especialidad = especialidad.nombre if especialidad else "Especialidad desconocida"
+                        except:
+                            nombre_especialidad = f"Especialidad #{producto.id_esp}"
+
+                        producto_info["nombre"] = nombre_especialidad
+                        producto_info["tipo"] = "Pizza"
+                    
+                elif det.id_hamb:
+                    from app.models.hamburguesasModel import hamburguesas
+                    producto = session.get(hamburguesas, det.id_hamb)
+                    if producto:
+                        producto_info["nombre"] = producto.paquete
+                        producto_info["tipo"] = "Hamburguesa"
+                
+                elif det.id_cos:
+                    from app.models.costillasModel import costillas
+                    producto = session.get(costillas, det.id_cos)
+                    if producto:
+                        producto_info["nombre"] = producto.orden
+                        producto_info["tipo"] = "Costilla"
+                
+                elif det.id_alis:
+                    from app.models.alitasModel import alitas
+                    producto = session.get(alitas, det.id_alis)
+                    if producto:
+                        producto_info["nombre"] = producto.orden
+                        producto_info["tipo"] = "Alitas"
+                
+                elif det.id_spag:
+                    from app.models.spaguettyModel import spaguetty
+                    producto = session.get(spaguetty, det.id_spag)
+                    if producto:
+                        producto_info["nombre"] = producto.orden
+                        producto_info["tipo"] = "Spaghetti"
+                
+                elif det.id_papa:
+                    from app.models.papasModel import papas
+                    producto = session.get(papas, det.id_papa)
+                    if producto:
+                        producto_info["nombre"] = producto.orden
+                        producto_info["tipo"] = "Papas"
+                
+                elif det.id_maris:
+                    from app.models.mariscosModel import mariscos
+                    producto = session.get(mariscos, det.id_maris)
+                    if producto:
+                        producto_info["nombre"] = producto.nombre
+                        producto_info["tipo"] = "Mariscos"
+                
+                elif det.id_refresco:
+                    from app.models.refrescosModel import refrescos
+                    producto = session.get(refrescos, det.id_refresco)
+                    if producto:
+                        producto_info["nombre"] = producto.nombre
+                        producto_info["tipo"] = "Refresco"
+                
+                elif det.id_magno:
+                    from app.models.magnoModel import magno
+                    producto = session.get(magno, det.id_magno)
+                    if producto:
+                        try:
+                            from app.models.especialidadModel import especialidad
+                            especialidad = session.get(especialidad, producto.id_especialidad)
+                            nombre_especialidad = especialidad.nombre if especialidad else "Especialidad desconocida"
+                        except:
+                            nombre_especialidad = f"Especialidad #{producto.id_especialidad}"
+
+                        producto_info["nombre"] = nombre_especialidad
+                        producto_info["tipo"] = "Magno"
+                
+                elif det.id_rec:
+                    from app.models.rectangularModel import rectangular
+                    producto = session.get(rectangular, det.id_rec)
+                    if producto:
+                        try:
+                            from app.models.especialidadModel import especialidad
+                            especialidad = session.get(especialidad, producto.id_esp)
+                            nombre_especialidad = especialidad.nombre if especialidad else "Especialidad desconocida"
+                        except:
+                            nombre_especialidad = f"Especialidad #{producto.id_esp}"
+
+                        producto_info["nombre"] = nombre_especialidad
+                        producto_info["tipo"] = "Rectangular"
+
+                productos.append(producto_info)
+
+            total_items = sum(det.cantidad for det in detalles)
+            
+            # Calcular tiempo transcurrido
+            tiempo_transcurrido = datetime.now() - venta.fecha_hora
+            minutos_transcurridos = int(tiempo_transcurrido.total_seconds() / 60)
+
+            pedidos_cocina.append({
+                "id_venta": venta.id_venta,
+                "fecha_hora": venta.fecha_hora,
+                "tiempo_transcurrido_minutos": minutos_transcurridos,
+                "cliente": nombre_cliente,
+                "sucursal": nombre_sucursal,
+                "status": venta.status,
+                "status_texto": {
+                    0: "Esperando",
+                    1: "Preparando",
+                    2: "Completado"
+                }.get(venta.status, "Desconocido"),
+                "total": float(venta.total),
+                "cantidad_items": total_items,
+                "cantidad_productos_diferentes": len(detalles),
+                "productos": productos
+            })
+
+        return {
+            "pedidos": pedidos_cocina,
+            "total": len(pedidos_cocina),
+            "filtro_aplicado": filtro,
+            "status_filtrado": status,
+            "sucursal_filtrada": id_suc
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
+
+
 @router.post("/")
 async def crear_venta(
     venta_request: VentaRequest,
@@ -32,7 +216,6 @@ async def crear_venta(
         raise HTTPException(status_code=404, detail=f"Sucursal con ID {venta_request.id_suc} no encontrada")
 
     try:
-        # Usar el total que viene del frontend (ya incluye descuentos/promociones)
         nueva_venta = Venta(
             id_suc=venta_request.id_suc,
             id_cliente=venta_request.id_cliente,
@@ -60,6 +243,7 @@ async def crear_venta(
                 id_paquete2=item.id_paquete2,
                 id_paquete3=item.id_paquete3,
                 id_magno=item.id_magno,
+                id_pizza=item.id_pizza
             )
             session.add(nuevo_detalle)
 
@@ -242,7 +426,7 @@ async def listar_ventas(
 ):
     try:
         # Construir query base
-        statement = select(Venta).order_by(Venta.fecha_hora.desc())
+        statement = select(Venta).order_by(Venta.fecha_hora.asc())
 
         if filtro == "hoy":
             hoy_inicio = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)

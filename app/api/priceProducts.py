@@ -74,7 +74,7 @@ def get_price_alitas(
 @router.get("/costillas", response_model=List[PriceCostilla])
 def get_price_costillas(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(costillas.id_cos, costillas.orden.label("nombre"), costillas.precio)
@@ -91,7 +91,7 @@ def get_price_costillas(
 @router.get("/spaguetty", response_model=List[PriceSpaghetti])
 def get_price_spaguetty(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(spaguetty.id_spag, spaguetty.orden.label("nombre"), spaguetty.precio)
@@ -107,7 +107,7 @@ def get_price_spaguetty(
 @router.get("/papas", response_model=List[PricePapas])
 def get_price_papas(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(papas.id_papa, papas.orden.label("nombre"), papas.precio)
@@ -123,7 +123,7 @@ def get_price_papas(
 @router.get("/rectangular", response_model=List[PriceRectangular])
 def get_price_rectangular(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(rectangular.id_rec, especialidad.nombre.label("nombre"), rectangular.precio)
@@ -140,7 +140,7 @@ def get_price_rectangular(
 @router.get("/barra", response_model=List[PriceBarra])
 def get_price_barra(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(barra.id_barr, especialidad.nombre.label("nombre"), barra.precio)
@@ -157,7 +157,7 @@ def get_price_barra(
 @router.get("/mariscos", response_model=List[PriceMarisco])
 def get_price_mariscos(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(mariscos.id_maris, mariscos.nombre, tamanosPizzas.precio)
@@ -174,7 +174,7 @@ def get_price_mariscos(
 @router.get("/refrescos", response_model=List[PriceRefresco])
 def get_price_refrescos(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(refrescos.id_refresco, refrescos.nombre, tamanosRefrescos.precio, tamanosRefrescos.tamano)
@@ -193,7 +193,7 @@ def get_price_refrescos(
 @router.get("/paquete1", response_model=List[PricePaquete1])
 def get_price_paquete1(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(paquete1.id_paquete1, especialidad.nombre, paquete1.precio)
@@ -211,7 +211,7 @@ def get_price_paquete1(
 @router.get("/paquete2", response_model=List[PricePaquete2])
 def get_price_paquete2(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(paquete2.id_paquete2, especialidad.nombre, paquete2.precio)
@@ -229,7 +229,7 @@ def get_price_paquete2(
 @router.get("/paquete3", response_model=List[PricePaquete3])
 def get_price_paquete3(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(paquete3.id_paquete3, especialidad.nombre, paquete3.precio)
@@ -247,7 +247,7 @@ def get_price_paquete3(
 @router.get("/magno", response_model=List[PriceMagno])
 def get_price_magno(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(magno.id_magno, especialidad.nombre.label("nombre"), magno.precio)
@@ -262,10 +262,10 @@ def get_price_magno(
         precio=r.precio
     ) for r in result]
 
-@router.get("/pizzas")
+@router.get("/pizzas", response_model=List[PricePizza])
 def get_price_pizzas(
     session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_producto"))
+    _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
         select(pizzas.id_pizza, especialidad.nombre.label("nombre"), tamanosPizzas.precio, tamanosPizzas.tamano)
