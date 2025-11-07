@@ -40,6 +40,7 @@ class PriceMarisco(BaseModel):
     id_maris: int
     nombre: str
     precio: Decimal
+    tamano:str
 
 class PriceRefresco(BaseModel):
     id_refresco: int

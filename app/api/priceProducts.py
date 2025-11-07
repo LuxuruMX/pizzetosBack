@@ -160,7 +160,7 @@ def get_price_mariscos(
     _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
-        select(mariscos.id_maris, mariscos.nombre, tamanosPizzas.precio)
+        select(mariscos.id_maris, mariscos.nombre, tamanosPizzas.precio, tamanosPizzas.tamano)
         .join(tamanosPizzas, mariscos.id_tamañop == tamanosPizzas.id_tamañop)
         .order_by(mariscos.id_maris)
     )
@@ -168,7 +168,8 @@ def get_price_mariscos(
     return [PriceMarisco(
         id_maris=r.id_maris,
         nombre=r.nombre,
-        precio=r.precio
+        precio=r.precio,
+        tamano=r.tamano
     ) for r in result]
 
 @router.get("/refrescos", response_model=List[PriceRefresco])
