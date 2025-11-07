@@ -15,6 +15,83 @@ from app.models.sucursalModel import Sucursal
 router = APIRouter()
 
 
+@router.get("/pedidos-resumen")
+async def listar_pedidos_resumen(
+    session: Session = Depends(get_session),
+    filtro: str = "hoy",
+    status: Optional[int] = None,
+    id_suc: Optional[int] = None,
+):
+    try:
+        statement = select(Venta).order_by(Venta.fecha_hora.desc())
+
+        now = datetime.now()
+        
+        if filtro == "hoy":
+            hoy_inicio = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            hoy_fin = hoy_inicio + timedelta(days=1)
+            statement = statement.where(
+                Venta.fecha_hora >= hoy_inicio,
+                Venta.fecha_hora < hoy_fin
+            )
+        elif filtro == "semana":
+            inicio_semana = now - timedelta(days=now.weekday())
+            inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
+            statement = statement.where(Venta.fecha_hora >= inicio_semana)
+        elif filtro == "mes":
+            inicio_mes = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            statement = statement.where(Venta.fecha_hora >= inicio_mes)
+        elif filtro == "todos":
+            # No aplicar filtro de fecha
+            pass
+
+        if status is not None:
+            statement = statement.where(Venta.status == status)
+
+        if id_suc:
+            statement = statement.where(Venta.id_suc == id_suc)
+
+        ventas = session.exec(statement).all()
+
+        pedidos_resumen = []
+        for venta in ventas:
+            cliente = session.get(Cliente, venta.id_cliente)
+            nombre_cliente = cliente.nombre if cliente else "Desconocido"
+
+            sucursal = session.get(Sucursal, venta.id_suc)
+            nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
+
+            statement_detalles = select(DetalleVenta).where(DetalleVenta.id_venta == venta.id_venta)
+            detalles = session.exec(statement_detalles).all()
+            total_items = sum(det.cantidad for det in detalles)
+
+            pedidos_resumen.append({
+                "id_venta": venta.id_venta,
+                "fecha_hora": venta.fecha_hora,
+                "cliente": nombre_cliente,
+                "sucursal": nombre_sucursal,
+                "status": venta.status,
+                "status_texto": {
+                    0: "Esperando",
+                    1: "Preparando",
+                    2: "Completado"
+                }.get(venta.status, "Desconocido"),
+                "total": float(venta.total),
+                "cantidad_items": total_items
+            })
+
+        return {
+            "pedidos": pedidos_resumen,
+            "total": len(pedidos_resumen),
+            "filtro_aplicado": filtro,
+            "status_filtrado": status,
+            "sucursal_filtrada": id_suc
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
+
+
 @router.get("/pedidos-cocina")
 async def listar_pedidos_cocina(
     session: Session = Depends(get_session),
@@ -22,15 +99,6 @@ async def listar_pedidos_cocina(
     status: Optional[int] = None,
     id_suc: Optional[int] = None,
 ):
-    """
-    Endpoint para mostrar pedidos activos en cocina.
-    Por defecto excluye pedidos completados (status=2).
-    
-    Parámetros de status:
-    - None (default): Muestra Esperando (0) y Preparando (1)
-    - 0: Solo Esperando
-    - 1: Solo Preparando
-    """
     try:
         # Construir query base
         statement = select(Venta).order_by(Venta.fecha_hora.asc())
@@ -216,10 +284,6 @@ async def obtener_detalle_pedido_cocina(
     id_venta: int,
     session: Session = Depends(get_session)
 ):
-    """
-    Obtiene el detalle completo de un pedido para mostrar en modal.
-    Incluye toda la información de productos y cliente.
-    """
     try:
         # Obtener venta
         venta = session.get(Venta, id_venta)
