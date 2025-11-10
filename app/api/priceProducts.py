@@ -181,6 +181,7 @@ def get_price_refrescos(
         select(refrescos.id_refresco, refrescos.nombre, tamanosRefrescos.precio, tamanosRefrescos.tamano)
         .join(tamanosRefrescos, refrescos.id_tamano == tamanosRefrescos.id_tamano)
         .order_by(refrescos.id_refresco)
+        .where(refrescos.nombre != "Jarrito")
     )
     result = session.exec(statement).all()
     return [PriceRefresco(
