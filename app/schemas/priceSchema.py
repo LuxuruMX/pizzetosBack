@@ -48,18 +48,8 @@ class PriceRefresco(BaseModel):
     precio: Decimal
     tamano: str
     
-class PricePaquete1(BaseModel):
-    id_paquete1: int
-    nombre: str
-    precio: Decimal
-    
-class PricePaquete2(BaseModel):
-    id_paquete2: int
-    nombre: str
-    precio: Decimal
-
-class PricePaquete3(BaseModel):
-    id_paquete3: int
+class PricePaquete(BaseModel):
+    id_paquete: int
     nombre: str
     precio: Decimal
     

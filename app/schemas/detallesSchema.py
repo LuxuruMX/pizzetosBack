@@ -18,8 +18,7 @@ class createDetalleVenta(BaseModel):
     id_maris: Optional[int] = None
     id_refresco: Optional[int] = None
     id_paquete: Optional[int] = None
-    id_paquete2: Optional[int] = None
-    id_paquete3: Optional[int] = None
+    detalle_paquete: Optional[str] = None
     id_magno: Optional[int] = None
     id_pizza: Optional[int] = None
 
@@ -39,8 +38,7 @@ class readDetalleVenta(BaseModel):
     id_maris: Optional[int]
     id_refresco: Optional[int]
     id_paquete: Optional[int]
-    id_paquete2: Optional[int]
-    id_paquete3: Optional[int]
+    detalle_paquete: Optional[str] = None
     id_magno: Optional[int]
     id_pizza: Optional[int] = None
 
@@ -59,8 +57,7 @@ class ItemVentaRequest(BaseModel):
     id_barr: Optional[int] = None
     id_maris: Optional[int] = None
     id_refresco: Optional[int] = None
-    id_paquete1: Optional[int] = None
-    id_paquete2: Optional[int] = None
-    id_paquete3: Optional[int] = None
+    id_paquete: Optional[int] = None
+    detalle_paquete: Optional[str] = None
     id_magno: Optional[int] = None
     id_pizza: Optional[int] = None

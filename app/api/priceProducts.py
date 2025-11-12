@@ -13,9 +13,7 @@ from app.schemas.priceSchema import (PriceCostilla,
                                      PriceBarra,
                                      PriceMarisco,
                                      PriceRefresco,
-                                     PricePaquete1,
-                                     PricePaquete2,
-                                     PricePaquete3,
+                                     PricePaquete,
                                      PriceMagno,
                                      PricePizza)
 
@@ -32,7 +30,7 @@ from app.models.rectangularModel import rectangular
 from app.models.barraModel import barra
 from app.models.mariscosModel import mariscos
 from app.models.refrescosModel import refrescos
-from app.models.paquetesModel import paquete1, paquete2, paquete3
+from app.models.paquetesModel import paquete
 from app.models.magnoModel import magno
 from app.models.pizzasModel import pizzas
 
@@ -192,59 +190,22 @@ def get_price_refrescos(
     ) for r in result]
     
     
-@router.get("/paquete1", response_model=List[PricePaquete1])
+@router.get("/paquetes", response_model=List[PricePaquete])
 def get_price_paquete1(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
     statement = (
-        select(paquete1.id_paquete1, especialidad.nombre, paquete1.precio)
-        .join(especialidad, paquete1.id_especialidad == especialidad.id_esp)
-        .order_by(paquete1.id_paquete1)
-    
+        select(paquete.id_paquete, paquete.nombre, paquete.precio)
+        .order_by(paquete.id_paquete)
     )
     result = session.exec(statement).all()
-    return [PricePaquete1(
-        id_paquete1=r.id_paquete1,
+    return [PricePaquete(
+        id_paquete=r.id_paquete,
         nombre=r.nombre,
         precio=r.precio
     ) for r in result]
 
-@router.get("/paquete2", response_model=List[PricePaquete2])
-def get_price_paquete2(
-    session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_venta"))
-):
-    statement = (
-        select(paquete2.id_paquete2, especialidad.nombre, paquete2.precio)
-        .join(especialidad, paquete2.id_especialidad == especialidad.id_esp)
-        .order_by(paquete2.id_paquete2)
-    
-    )
-    result = session.exec(statement).all()
-    return [PricePaquete2(
-        id_paquete2=r.id_paquete2,
-        nombre=r.nombre,
-        precio=r.precio
-    ) for r in result]
-
-@router.get("/paquete3", response_model=List[PricePaquete3])
-def get_price_paquete3(
-    session: Session = Depends(get_session),
-    _: None = Depends(require_permission("ver_venta"))
-):
-    statement = (
-        select(paquete3.id_paquete3, especialidad.nombre, paquete3.precio)
-        .join(especialidad, paquete3.id_especialidad == especialidad.id_esp)
-        .order_by(paquete3.id_paquete3)
-    
-    )
-    result = session.exec(statement).all()
-    return [PricePaquete3(
-        id_paquete3=r.id_paquete3,
-        nombre=r.nombre,
-        precio=r.precio
-    ) for r in result]
 
 @router.get("/magno", response_model=List[PriceMagno])
 def get_price_magno(

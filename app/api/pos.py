@@ -470,9 +470,8 @@ async def crear_venta(
                 id_barr=item.id_barr,
                 id_maris=item.id_maris,
                 id_refresco=item.id_refresco,
-                id_paquete1=item.id_paquete1,
-                id_paquete2=item.id_paquete2,
-                id_paquete3=item.id_paquete3,
+                id_paquete=item.id_paquete,
+                detalle_paquete=item.detalle_paquete,
                 id_magno=item.id_magno,
                 id_pizza=item.id_pizza
             )
@@ -593,9 +592,8 @@ async def editar_venta(
                 id_barr=item.id_barr,
                 id_maris=item.id_maris,
                 id_refresco=item.id_refresco,
-                id_paquete1=item.id_paquete1,
-                id_paquete2=item.id_paquete2,
-                id_paquete3=item.id_paquete3,
+                id_paquete=item.id_paquete,
+                detalle_paquete=item.detalle_paquete,
                 id_magno=item.id_magno,
             )
             session.add(nuevo_detalle)

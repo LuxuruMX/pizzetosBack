@@ -25,9 +25,8 @@ class DetalleVenta(SQLModel, table=True):
     id_barr: Optional[int] = Field(default=None)
     id_maris: Optional[int] = Field(default=None)
     id_refresco: Optional[int] = Field(default=None)
-    id_paquete1: Optional[int] = Field(default=None)
-    id_paquete2: Optional[int] = Field(default=None)
-    id_paquete3: Optional[int] = Field(default=None)
+    id_paquete: Optional[int] = Field(default=None)
+    detalle_paquete: Optional[str] = Field(default=None)
     id_magno: Optional[int] = Field(default=None)
     id_pizza: Optional[int] = Field(default=None)
     
