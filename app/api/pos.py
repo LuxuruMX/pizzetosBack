@@ -242,6 +242,13 @@ async def listar_pedidos_cocina(
                         producto_info["nombre"] = nombre_especialidad
                         producto_info["tipo"] = "Rectangular"
 
+                elif det.id_paquete:
+                    if det.id_paquete == 1:
+                        from app.models.refrescosModel import refrescos
+                        from app.models.pizzasModel import pizzas
+                        pass
+                
+                
                 productos.append(producto_info)
 
             total_items = sum(det.cantidad for det in detalles)
