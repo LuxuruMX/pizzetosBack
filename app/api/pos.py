@@ -424,7 +424,7 @@ async def obtener_detalle_pedido_cocina(
                 "tipo": None
             }
 
-            if det.id_pizza:
+            if det.id_pizza and det.id_paquete != 2:
                 from app.models.pizzasModel import pizzas
                 producto = session.get(pizzas, det.id_pizza)
                 if producto:
@@ -434,59 +434,68 @@ async def obtener_detalle_pedido_cocina(
                         nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
                     except:
                         nombre_especialidad = f"Especialidad #{producto.id_esp}"
+
                     producto_info["nombre"] = nombre_especialidad
                     producto_info["tipo"] = "Pizza"
+                productos.append(producto_info)
                 
-            elif det.id_hamb:
+            if det.id_hamb and det.id_paquete != 2:
                 from app.models.hamburguesasModel import hamburguesas
                 producto = session.get(hamburguesas, det.id_hamb)
                 if producto:
                     producto_info["nombre"] = producto.paquete
                     producto_info["tipo"] = "Hamburguesa"
+                productos.append(producto_info)
             
-            elif det.id_cos:
+            if det.id_cos:
                 from app.models.costillasModel import costillas
                 producto = session.get(costillas, det.id_cos)
                 if producto:
                     producto_info["nombre"] = producto.orden
                     producto_info["tipo"] = "Costilla"
+                productos.append(producto_info)
             
-            elif det.id_alis:
+            if det.id_alis and det.id_paquete != 2:
                 from app.models.alitasModel import alitas
                 producto = session.get(alitas, det.id_alis)
                 if producto:
                     producto_info["nombre"] = producto.orden
                     producto_info["tipo"] = "Alitas"
+                productos.append(producto_info)
             
-            elif det.id_spag:
+            if det.id_spag:
                 from app.models.spaguettyModel import spaguetty
                 producto = session.get(spaguetty, det.id_spag)
                 if producto:
                     producto_info["nombre"] = producto.orden
                     producto_info["tipo"] = "Spaghetti"
+                productos.append(producto_info)
             
-            elif det.id_papa:
+            if det.id_papa:
                 from app.models.papasModel import papas
                 producto = session.get(papas, det.id_papa)
                 if producto:
                     producto_info["nombre"] = producto.orden
                     producto_info["tipo"] = "Papas"
+                productos.append(producto_info)
             
-            elif det.id_maris:
+            if det.id_maris:
                 from app.models.mariscosModel import mariscos
                 producto = session.get(mariscos, det.id_maris)
                 if producto:
                     producto_info["nombre"] = producto.nombre
                     producto_info["tipo"] = "Mariscos"
+                productos.append(producto_info)
             
-            elif det.id_refresco:
+            if det.id_refresco and det.id_paquete != 2:
                 from app.models.refrescosModel import refrescos
                 producto = session.get(refrescos, det.id_refresco)
                 if producto:
                     producto_info["nombre"] = producto.nombre
                     producto_info["tipo"] = "Refresco"
+                productos.append(producto_info)
             
-            elif det.id_magno:
+            if det.id_magno:
                 from app.models.magnoModel import magno
                 producto = session.get(magno, det.id_magno)
                 if producto:
@@ -496,10 +505,12 @@ async def obtener_detalle_pedido_cocina(
                         nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
                     except:
                         nombre_especialidad = f"Especialidad #{producto.id_especialidad}"
+
                     producto_info["nombre"] = nombre_especialidad
                     producto_info["tipo"] = "Magno"
+                productos.append(producto_info)
             
-            elif det.id_rec:
+            if det.id_rec:
                 from app.models.rectangularModel import rectangular
                 producto = session.get(rectangular, det.id_rec)
                 if producto:
@@ -509,10 +520,112 @@ async def obtener_detalle_pedido_cocina(
                         nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
                     except:
                         nombre_especialidad = f"Especialidad #{producto.id_esp}"
+
                     producto_info["nombre"] = nombre_especialidad
                     producto_info["tipo"] = "Rectangular"
-
-            productos.append(producto_info)
+                productos.append(producto_info)
+            
+            
+            if det.id_paquete:
+                if det.id_paquete in [1, 3]:
+                    from app.models.pizzasModel import pizzas
+                    from app.models.especialidadModel import especialidad
+                    
+                    # Parse los IDs del string (ej: "1,2" o "1,2,3")
+                    if det.detalle_paquete:
+                        ids_pizzas = det.detalle_paquete.split(",")
+                        
+                        for id_pizza_str in ids_pizzas:
+                            try:
+                                id_pizza = int(id_pizza_str.strip())
+                                pizza = session.get(pizzas, id_pizza)
+                                
+                                if pizza:
+                                    try:
+                                        especialidad_obj = session.get(especialidad, pizza.id_esp)
+                                        nombre_especialidad = especialidad_obj.nombre if especialidad_obj else f"Especialidad #{pizza.id_esp}"
+                                    except:
+                                        nombre_especialidad = f"Especialidad #{pizza.id_esp}"
+                                    
+                                    pizza_info = {
+                                        "cantidad": 1,
+                                        "precio_unitario": 0,
+                                        "subtotal": 0,
+                                        "nombre": nombre_especialidad,
+                                        "tipo": f"Paquete {det.id_paquete} - Pizza"
+                                    }
+                                    productos.append(pizza_info)
+                            
+                            except (ValueError, AttributeError) as e:
+                                error_info = {
+                                    "cantidad": 1,
+                                    "precio_unitario": 0,
+                                    "subtotal": 0,
+                                    "nombre": f"Error al cargar pizza del paquete",
+                                    "tipo": f"Paquete {det.id_paquete}"
+                                }
+                                productos.append(error_info)
+                    else:
+                        producto_info["nombre"] = f"Paquete {det.id_paquete} - Sin detalle"
+                        producto_info["tipo"] = "Paquete"
+                        productos.append(producto_info)
+                elif det.id_paquete == 2:
+                    from app.models.pizzasModel import pizzas
+                    from app.models.especialidadModel import especialidad
+                    from app.models.alitasModel import alitas
+                    from app.models.refrescosModel import refrescos
+                    from app.models.hamburguesasModel import hamburguesas
+                    
+                    refresco = session.get(refrescos, det.id_refresco)
+                    if refresco:
+                        refresco_info = {
+                            "cantidad": 1,
+                            "precio_unitario": 0,
+                            "subtotal": 0,
+                            "nombre": refresco.nombre,
+                            "tipo": f"Paquete {det.id_paquete} - Refresco"
+                        }
+                        productos.append(refresco_info)
+                    
+                    producto = session.get(pizzas, det.id_pizza)
+                    if producto:
+                        try:
+                            especialidad_obj = session.get(especialidad, producto.id_esp)
+                            nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
+                        except:
+                            nombre_especialidad = f"Especialidad #{producto.id_esp}"
+                        pizza_info = {
+                            "cantidad": 1,
+                            "precio_unitario": 0,
+                            "subtotal": 0,
+                            "nombre": nombre_especialidad,
+                            "tipo": f"Paquete {det.id_paquete} - Pizza"
+                        }
+                        productos.append(pizza_info)
+                    if det.id_alis:
+                        alita = session.get(alitas, det.id_alis)
+                        if alita:
+                            alita_info = {
+                                "cantidad": 1,
+                                "precio_unitario": 0,
+                                "subtotal": 0,
+                                "nombre": alita.orden,
+                                "tipo": f"Paquete {det.id_paquete} - Alitas"
+                            }
+                            productos.append(alita_info)
+                    else:
+                        hamburguesa = session.get(hamburguesas, det.id_hamb)
+                        if hamburguesa:
+                            hamb_info = {
+                                "cantidad": 1,
+                                "precio_unitario": 0,
+                                "subtotal": 0,
+                                "nombre": hamburguesa.paquete,
+                                "tipo": f"Paquete {det.id_paquete} - Hamburguesa"
+                            }
+                            productos.append(hamb_info)
+                        
+                        
 
         total_items = sum(det.cantidad for det in detalles)
         tiempo_transcurrido = datetime.now() - venta.fecha_hora
