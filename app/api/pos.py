@@ -92,6 +92,7 @@ async def listar_pedidos_resumen(
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
 
 
+
 @router.get("/pedidos-cocina")
 async def listar_pedidos_cocina(
     session: Session = Depends(get_session),
@@ -145,12 +146,9 @@ async def listar_pedidos_cocina(
             for det in detalles:
                 producto_info = {
                     "cantidad": det.cantidad,
-                    "precio_unitario": float(det.precio_unitario),
-                    "subtotal": float(det.cantidad * det.precio_unitario),
                     "nombre": None,
                     "tipo": None
                 }
-
 
                 if det.id_pizza and det.id_paquete != 2:
                     from app.models.pizzasModel import pizzas
@@ -277,8 +275,6 @@ async def listar_pedidos_cocina(
                                         
                                         pizza_info = {
                                             "cantidad": 1,
-                                            "precio_unitario": 0,
-                                            "subtotal": 0,
                                             "nombre": nombre_especialidad,
                                             "tipo": f"Paquete {det.id_paquete} - Pizza"
                                         }
@@ -287,8 +283,6 @@ async def listar_pedidos_cocina(
                                 except (ValueError, AttributeError) as e:
                                     error_info = {
                                         "cantidad": 1,
-                                        "precio_unitario": 0,
-                                        "subtotal": 0,
                                         "nombre": f"Error al cargar pizza del paquete",
                                         "tipo": f"Paquete {det.id_paquete}"
                                     }
@@ -308,8 +302,6 @@ async def listar_pedidos_cocina(
                         if refresco:
                             refresco_info = {
                                 "cantidad": 1,
-                                "precio_unitario": 0,
-                                "subtotal": 0,
                                 "nombre": refresco.nombre,
                                 "tipo": f"Paquete {det.id_paquete} - Refresco"
                             }
@@ -324,8 +316,6 @@ async def listar_pedidos_cocina(
                                 nombre_especialidad = f"Especialidad #{producto.id_esp}"
                             pizza_info = {
                                 "cantidad": 1,
-                                "precio_unitario": 0,
-                                "subtotal": 0,
                                 "nombre": nombre_especialidad,
                                 "tipo": f"Paquete {det.id_paquete} - Pizza"
                             }
@@ -335,8 +325,6 @@ async def listar_pedidos_cocina(
                             if alita:
                                 alita_info = {
                                     "cantidad": 1,
-                                    "precio_unitario": 0,
-                                    "subtotal": 0,
                                     "nombre": alita.orden,
                                     "tipo": f"Paquete {det.id_paquete} - Alitas"
                                 }
@@ -346,8 +334,6 @@ async def listar_pedidos_cocina(
                             if hamburguesa:
                                 hamb_info = {
                                     "cantidad": 1,
-                                    "precio_unitario": 0,
-                                    "subtotal": 0,
                                     "nombre": hamburguesa.paquete,
                                     "tipo": f"Paquete {det.id_paquete} - Hamburguesa"
                                 }
@@ -373,7 +359,6 @@ async def listar_pedidos_cocina(
                     1: "Preparando",
                     2: "Completado"
                 }.get(venta.status, "Desconocido"),
-                "total": float(venta.total),
                 "cantidad_items": total_items,
                 "cantidad_productos_diferentes": len(detalles),
                 "productos": productos
@@ -389,6 +374,8 @@ async def listar_pedidos_cocina(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
+
+
 
 @router.get("/pedidos-cocina/{id_venta}/detalle")
 async def obtener_detalle_pedido_cocina(
@@ -418,8 +405,6 @@ async def obtener_detalle_pedido_cocina(
         for det in detalles:
             producto_info = {
                 "cantidad": det.cantidad,
-                "precio_unitario": float(det.precio_unitario),
-                "subtotal": float(det.cantidad * det.precio_unitario),
                 "nombre": None,
                 "tipo": None
             }
@@ -549,8 +534,6 @@ async def obtener_detalle_pedido_cocina(
                                     
                                     pizza_info = {
                                         "cantidad": 1,
-                                        "precio_unitario": 0,
-                                        "subtotal": 0,
                                         "nombre": nombre_especialidad,
                                         "tipo": f"Paquete {det.id_paquete} - Pizza"
                                     }
@@ -559,8 +542,6 @@ async def obtener_detalle_pedido_cocina(
                             except (ValueError, AttributeError) as e:
                                 error_info = {
                                     "cantidad": 1,
-                                    "precio_unitario": 0,
-                                    "subtotal": 0,
                                     "nombre": f"Error al cargar pizza del paquete",
                                     "tipo": f"Paquete {det.id_paquete}"
                                 }
@@ -580,8 +561,6 @@ async def obtener_detalle_pedido_cocina(
                     if refresco:
                         refresco_info = {
                             "cantidad": 1,
-                            "precio_unitario": 0,
-                            "subtotal": 0,
                             "nombre": refresco.nombre,
                             "tipo": f"Paquete {det.id_paquete} - Refresco"
                         }
@@ -596,8 +575,6 @@ async def obtener_detalle_pedido_cocina(
                             nombre_especialidad = f"Especialidad #{producto.id_esp}"
                         pizza_info = {
                             "cantidad": 1,
-                            "precio_unitario": 0,
-                            "subtotal": 0,
                             "nombre": nombre_especialidad,
                             "tipo": f"Paquete {det.id_paquete} - Pizza"
                         }
@@ -607,8 +584,6 @@ async def obtener_detalle_pedido_cocina(
                         if alita:
                             alita_info = {
                                 "cantidad": 1,
-                                "precio_unitario": 0,
-                                "subtotal": 0,
                                 "nombre": alita.orden,
                                 "tipo": f"Paquete {det.id_paquete} - Alitas"
                             }
@@ -618,8 +593,6 @@ async def obtener_detalle_pedido_cocina(
                         if hamburguesa:
                             hamb_info = {
                                 "cantidad": 1,
-                                "precio_unitario": 0,
-                                "subtotal": 0,
                                 "nombre": hamburguesa.paquete,
                                 "tipo": f"Paquete {det.id_paquete} - Hamburguesa"
                             }
@@ -643,7 +616,6 @@ async def obtener_detalle_pedido_cocina(
                 1: "Preparando",
                 2: "Completado"
             }.get(venta.status, "Desconocido"),
-            "total": float(venta.total),
             "cantidad_items": total_items,
             "cantidad_productos_diferentes": len(detalles),
             "productos": productos
@@ -653,6 +625,8 @@ async def obtener_detalle_pedido_cocina(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener detalle del pedido: {str(e)}")
+
+
 
 @router.post("/")
 async def crear_venta(
@@ -722,9 +696,9 @@ async def crear_venta(
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al procesar la venta: {str(e)}")
-    
-    
-    
+
+
+
 @router.get("/{id_venta}", response_model=VentaResponse)
 async def obtener_venta(
     id_venta: int,
@@ -757,7 +731,9 @@ async def obtener_venta(
         total=float(venta.total),
         detalles=detalles_respuesta
     )
-    
+
+
+
 @router.put("/{id_venta}", response_model=VentaResponse)
 async def editar_venta(
     id_venta: int,
@@ -845,6 +821,7 @@ async def editar_venta(
         raise HTTPException(status_code=500, detail=f"Error al actualizar la venta: {str(e)}")
 
 
+
 @router.delete("/{id_venta}")
 async def eliminar_venta(
     id_venta: int,
@@ -869,7 +846,9 @@ async def eliminar_venta(
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al eliminar la venta: {str(e)}")
-    
+
+
+
 @router.get("/")
 async def listar_ventas(
     session: Session = Depends(get_session),
@@ -932,9 +911,9 @@ async def listar_ventas(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener ventas: {str(e)}")
-    
-    
-    
+
+
+
 @router.patch("/{id_venta}/toggle-preparacion")
 async def toggle_preparacion(
     id_venta: int,
