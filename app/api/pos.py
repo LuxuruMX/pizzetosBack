@@ -152,7 +152,7 @@ async def listar_pedidos_cocina(
                 }
 
 
-                if det.id_pizza:
+                if det.id_pizza and det.id_paquete != 2:
                     from app.models.pizzasModel import pizzas
                     producto = session.get(pizzas, det.id_pizza)
                     if producto:
@@ -167,7 +167,7 @@ async def listar_pedidos_cocina(
                         producto_info["tipo"] = "Pizza"
                     productos.append(producto_info)
                     
-                if det.id_hamb:
+                if det.id_hamb and det.id_paquete != 2:
                     from app.models.hamburguesasModel import hamburguesas
                     producto = session.get(hamburguesas, det.id_hamb)
                     if producto:
@@ -183,7 +183,7 @@ async def listar_pedidos_cocina(
                         producto_info["tipo"] = "Costilla"
                     productos.append(producto_info)
                 
-                if det.id_alis:
+                if det.id_alis and det.id_paquete != 2:
                     from app.models.alitasModel import alitas
                     producto = session.get(alitas, det.id_alis)
                     if producto:
@@ -215,7 +215,7 @@ async def listar_pedidos_cocina(
                         producto_info["tipo"] = "Mariscos"
                     productos.append(producto_info)
                 
-                if det.id_refresco:
+                if det.id_refresco and det.id_paquete != 2:
                     from app.models.refrescosModel import refrescos
                     producto = session.get(refrescos, det.id_refresco)
                     if producto:
@@ -255,14 +255,7 @@ async def listar_pedidos_cocina(
                 
                 
                 if det.id_paquete:
-                    # Paquete 2 no necesita procesamiento especial
-                    if det.id_paquete == 2:
-                        producto_info["nombre"] = "Paquete 2 - Ver catálogo completo"
-                        producto_info["tipo"] = "Paquete"
-                        productos.append(producto_info)
-                    
-                    # Paquete 1 (2 pizzas) o Paquete 3 (3 pizzas)
-                    elif det.id_paquete in [1, 3]:
+                    if det.id_paquete in [1, 3]:
                         from app.models.pizzasModel import pizzas
                         from app.models.especialidadModel import especialidad
                         
@@ -276,17 +269,15 @@ async def listar_pedidos_cocina(
                                     pizza = session.get(pizzas, id_pizza)
                                     
                                     if pizza:
-                                        # Obtener el nombre de la especialidad
                                         try:
                                             especialidad_obj = session.get(especialidad, pizza.id_esp)
                                             nombre_especialidad = especialidad_obj.nombre if especialidad_obj else f"Especialidad #{pizza.id_esp}"
                                         except:
                                             nombre_especialidad = f"Especialidad #{pizza.id_esp}"
                                         
-                                        # Crear un producto_info separado para cada pizza del paquete
                                         pizza_info = {
-                                            "cantidad": 1,  # Cada pizza cuenta como 1 dentro del paquete
-                                            "precio_unitario": 0,  # El precio está en el paquete completo
+                                            "cantidad": 1,
+                                            "precio_unitario": 0,
                                             "subtotal": 0,
                                             "nombre": nombre_especialidad,
                                             "tipo": f"Paquete {det.id_paquete} - Pizza"
@@ -294,7 +285,6 @@ async def listar_pedidos_cocina(
                                         productos.append(pizza_info)
                                 
                                 except (ValueError, AttributeError) as e:
-                                    # Si hay error al parsear, agregar entrada con error
                                     error_info = {
                                         "cantidad": 1,
                                         "precio_unitario": 0,
@@ -304,16 +294,65 @@ async def listar_pedidos_cocina(
                                     }
                                     productos.append(error_info)
                         else:
-                            # Si no hay detalle_paquete, mostrar paquete genérico
                             producto_info["nombre"] = f"Paquete {det.id_paquete} - Sin detalle"
                             producto_info["tipo"] = "Paquete"
                             productos.append(producto_info)
-                    
-                    else:
-                        # Otros tipos de paquetes
-                        producto_info["nombre"] = f"Paquete {det.id_paquete}"
-                        producto_info["tipo"] = "Paquete"
-                        productos.append(producto_info)
+                    elif det.id_paquete == 2:
+                        from app.models.pizzasModel import pizzas
+                        from app.models.especialidadModel import especialidad
+                        from app.models.alitasModel import alitas
+                        from app.models.refrescosModel import refrescos
+                        from app.models.hamburguesasModel import hamburguesas
+                        
+                        refresco = session.get(refrescos, det.id_refresco)
+                        if refresco:
+                            refresco_info = {
+                                "cantidad": 1,
+                                "precio_unitario": 0,
+                                "subtotal": 0,
+                                "nombre": refresco.nombre,
+                                "tipo": f"Paquete {det.id_paquete} - Refresco"
+                            }
+                            productos.append(refresco_info)
+                        
+                        producto = session.get(pizzas, det.id_pizza)
+                        if producto:
+                            try:
+                                especialidad_obj = session.get(especialidad, producto.id_esp)
+                                nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
+                            except:
+                                nombre_especialidad = f"Especialidad #{producto.id_esp}"
+                            pizza_info = {
+                                "cantidad": 1,
+                                "precio_unitario": 0,
+                                "subtotal": 0,
+                                "nombre": nombre_especialidad,
+                                "tipo": f"Paquete {det.id_paquete} - Pizza"
+                            }
+                            productos.append(pizza_info)
+                        if det.id_alis:
+                            alita = session.get(alitas, det.id_alis)
+                            if alita:
+                                alita_info = {
+                                    "cantidad": 1,
+                                    "precio_unitario": 0,
+                                    "subtotal": 0,
+                                    "nombre": alita.orden,
+                                    "tipo": f"Paquete {det.id_paquete} - Alitas"
+                                }
+                                productos.append(alita_info)
+                        else:
+                            hamburguesa = session.get(hamburguesas, det.id_hamb)
+                            if hamburguesa:
+                                hamb_info = {
+                                    "cantidad": 1,
+                                    "precio_unitario": 0,
+                                    "subtotal": 0,
+                                    "nombre": hamburguesa.paquete,
+                                    "tipo": f"Paquete {det.id_paquete} - Hamburguesa"
+                                }
+                                productos.append(hamb_info)
+                        
                         
 
             total_items = sum(det.cantidad for det in detalles)
