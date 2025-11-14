@@ -649,7 +649,8 @@ async def crear_venta(
             id_suc=venta_request.id_suc,
             id_cliente=venta_request.id_cliente,
             fecha_hora=datetime.now(),
-            total=Decimal(str(venta_request.total))
+            total=Decimal(str(venta_request.total)),
+            comentarios=venta_request.comentarios
         )
         session.add(nueva_venta)
         session.flush()

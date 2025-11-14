@@ -20,14 +20,13 @@ class readVenta(BaseModel):
     
     
 class VentaRequest(BaseModel):
-    """Request completo para crear una venta"""
     id_suc: int
     id_cliente: int
     total: Decimal
+    comentarios: str = None
     items: List[ItemVentaRequest]
     
 class VentaResponse(BaseModel):
-    """Response de la venta creada"""
     id_venta: int
     id_suc: int
     id_cliente: int
