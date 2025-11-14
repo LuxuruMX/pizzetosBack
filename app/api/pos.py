@@ -354,6 +354,7 @@ async def listar_pedidos_cocina(
                 "cliente": nombre_cliente,
                 "sucursal": nombre_sucursal,
                 "status": venta.status,
+                "comentarios": venta.comentarios,
                 "status_texto": {
                     0: "Esperando",
                     1: "Preparando",
@@ -611,6 +612,7 @@ async def obtener_detalle_pedido_cocina(
             "cliente": nombre_cliente,
             "sucursal": nombre_sucursal,
             "status": venta.status,
+            "comentarios": venta.comentarios,
             "status_texto": {
                 0: "Esperando",
                 1: "Preparando",
