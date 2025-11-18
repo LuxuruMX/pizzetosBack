@@ -21,6 +21,7 @@ class createDetalleVenta(BaseModel):
     detalle_paquete: Optional[str] = None
     id_magno: Optional[int] = None
     id_pizza: Optional[int] = None
+    status: Optional[int] = 1
 
 class readDetalleVenta(BaseModel):
     id_detalle: int
@@ -41,6 +42,7 @@ class readDetalleVenta(BaseModel):
     detalle_paquete: Optional[str] = None
     id_magno: Optional[int]
     id_pizza: Optional[int] = None
+    status: Optional[int] = 1
 
 
 
@@ -61,3 +63,4 @@ class ItemVentaRequest(BaseModel):
     detalle_paquete: Optional[str] = None
     id_magno: Optional[int] = None
     id_pizza: Optional[int] = None
+    status: Optional[int] = 1

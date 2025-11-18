@@ -147,7 +147,8 @@ async def listar_pedidos_cocina(
                 producto_info = {
                     "cantidad": det.cantidad,
                     "nombre": None,
-                    "tipo": None
+                    "tipo": None,
+                    "status": det.status  # <-- Añadido status del detalle
                 }
 
                 if det.id_pizza and det.id_paquete != 2:
@@ -276,7 +277,8 @@ async def listar_pedidos_cocina(
                                         pizza_info = {
                                             "cantidad": 1,
                                             "nombre": nombre_especialidad,
-                                            "tipo": f"Paquete {det.id_paquete} - Pizza"
+                                            "tipo": f"Paquete {det.id_paquete} - Pizza",
+                                            "status": det.status  # <-- Añadido status del detalle
                                         }
                                         productos.append(pizza_info)
                                 
@@ -284,12 +286,14 @@ async def listar_pedidos_cocina(
                                     error_info = {
                                         "cantidad": 1,
                                         "nombre": f"Error al cargar pizza del paquete",
-                                        "tipo": f"Paquete {det.id_paquete}"
+                                        "tipo": f"Paquete {det.id_paquete}",
+                                        "status": det.status  # <-- Añadido status del detalle
                                     }
                                     productos.append(error_info)
                         else:
-                            producto_info["nombre"] = f"Paquete {det.id_paquete} - Sin detalle"
-                            producto_info["tipo"] = "Paquete"
+                            producto_info["nombre"] = f"Paquete {det.id_paquete} - Sin detalle",
+                            producto_info["tipo"] = "Paquete",
+                            producto_info["status"] = det.status  # <-- Añadido status del detalle
                             productos.append(producto_info)
                     elif det.id_paquete == 2:
                         from app.models.pizzasModel import pizzas
@@ -303,7 +307,8 @@ async def listar_pedidos_cocina(
                             refresco_info = {
                                 "cantidad": 1,
                                 "nombre": refresco.nombre,
-                                "tipo": f"Paquete {det.id_paquete} - Refresco"
+                                "tipo": f"Paquete {det.id_paquete} - Refresco",
+                                "status": det.status  # <-- Añadido status del detalle
                             }
                             productos.append(refresco_info)
                         
@@ -317,7 +322,8 @@ async def listar_pedidos_cocina(
                             pizza_info = {
                                 "cantidad": 1,
                                 "nombre": nombre_especialidad,
-                                "tipo": f"Paquete {det.id_paquete} - Pizza"
+                                "tipo": f"Paquete {det.id_paquete} - Pizza",
+                                "status": det.status  # <-- Añadido status del detalle
                             }
                             productos.append(pizza_info)
                         if det.id_alis:
@@ -326,7 +332,8 @@ async def listar_pedidos_cocina(
                                 alita_info = {
                                     "cantidad": 1,
                                     "nombre": alita.orden,
-                                    "tipo": f"Paquete {det.id_paquete} - Alitas"
+                                    "tipo": f"Paquete {det.id_paquete} - Alitas",
+                                    "status": det.status  # <-- Añadido status del detalle
                                 }
                                 productos.append(alita_info)
                         else:
@@ -335,12 +342,11 @@ async def listar_pedidos_cocina(
                                 hamb_info = {
                                     "cantidad": 1,
                                     "nombre": hamburguesa.paquete,
-                                    "tipo": f"Paquete {det.id_paquete} - Hamburguesa"
+                                    "tipo": f"Paquete {det.id_paquete} - Hamburguesa",
+                                    "status": det.status  # <-- Añadido status del detalle
                                 }
                                 productos.append(hamb_info)
                         
-                        
-
             total_items = sum(det.cantidad for det in detalles)
             
             # Calcular tiempo transcurrido
