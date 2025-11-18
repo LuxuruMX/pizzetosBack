@@ -29,4 +29,5 @@ class DetalleVenta(SQLModel, table=True):
     detalle_paquete: Optional[str] = Field(default=None)
     id_magno: Optional[int] = Field(default=None)
     id_pizza: Optional[int] = Field(default=None)
+    status: Optional[int] = Field(default=1)
     

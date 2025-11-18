@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, select, update
 from decimal import Decimal
 from datetime import datetime, timedelta
 from typing import Optional
@@ -958,6 +958,7 @@ async def toggle_preparacion(
         raise HTTPException(status_code=500, detail=f"Error al actualizar status: {str(e)}")
 
 
+
 @router.patch("/{id_venta}/completar")
 async def completar_pedido(
     id_venta: int,
@@ -975,8 +976,18 @@ async def completar_pedido(
                 detail=f"Solo se pueden completar pedidos en preparación. Estado actual: {venta.status}"
             )
         
+        # Cambiar el estado de la venta
         venta.status = 2
         session.add(venta)
+
+        # Cambiar el estado de todos los detalles de venta asociados
+        stmt = (
+            update(DetalleVenta)
+            .where(DetalleVenta.id_venta == id_venta)
+            .values(status=2)
+        )
+        session.execute(stmt)
+
         session.commit()
         session.refresh(venta)
         
