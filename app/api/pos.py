@@ -438,7 +438,7 @@ async def getDetallesEdit(
 
                     producto_info["nombre"] = nombre_especialidad
                     producto_info["tamaño"] = nombre_tamano
-                    producto_info["tipo"] = "Pizza"
+                    producto_info["tipo"] = "id_pizza"
                     producto_info["precio_unitario"] = float(precio_unitario)
                 productos.append(producto_info)
                 
@@ -447,7 +447,7 @@ async def getDetallesEdit(
                 producto = session.get(hamburguesas, det.id_hamb)
                 if producto:
                     producto_info["nombre"] = producto.paquete
-                    producto_info["tipo"] = "Hamburguesa"
+                    producto_info["tipo"] = "id_hamb"
                 productos.append(producto_info)
             
             elif det.id_cos:
@@ -455,7 +455,7 @@ async def getDetallesEdit(
                 producto = session.get(costillas, det.id_cos)
                 if producto:
                     producto_info["nombre"] = producto.orden
-                    producto_info["tipo"] = "Costilla"
+                    producto_info["tipo"] = "id_cos"
                 productos.append(producto_info)
             
             elif det.id_alis and not det.id_paquete:
@@ -463,7 +463,7 @@ async def getDetallesEdit(
                 producto = session.get(alitas, det.id_alis)
                 if producto:
                     producto_info["nombre"] = producto.orden
-                    producto_info["tipo"] = "Alitas"
+                    producto_info["tipo"] = "id_alis"
                 productos.append(producto_info)
             
             elif det.id_spag:
@@ -471,7 +471,7 @@ async def getDetallesEdit(
                 producto = session.get(spaguetty, det.id_spag)
                 if producto:
                     producto_info["nombre"] = producto.orden
-                    producto_info["tipo"] = "Spaghetti"
+                    producto_info["tipo"] = "id_spag"
                 productos.append(producto_info)
             
             elif det.id_papa:
@@ -479,7 +479,7 @@ async def getDetallesEdit(
                 producto = session.get(papas, det.id_papa)
                 if producto:
                     producto_info["nombre"] = producto.orden
-                    producto_info["tipo"] = "Papas"
+                    producto_info["tipo"] = "id_papa"
                 productos.append(producto_info)
             
             elif det.id_maris:
@@ -487,7 +487,7 @@ async def getDetallesEdit(
                 producto = session.get(mariscos, det.id_maris)
                 if producto:
                     producto_info["nombre"] = producto.nombre
-                    producto_info["tipo"] = "Mariscos"
+                    producto_info["tipo"] = "id_maris"
                 productos.append(producto_info)
             
             elif det.id_refresco and not det.id_paquete:
@@ -497,7 +497,7 @@ async def getDetallesEdit(
                 tamano = session.get(tamanosRefrescos, producto.id_tamano)
                 if producto:
                     producto_info["nombre"] = producto.nombre
-                    producto_info["tipo"] = "Refresco"
+                    producto_info["tipo"] = "id_refresco"
                     producto_info["tamaño"] = tamano.tamano
                 productos.append(producto_info)
             
@@ -513,7 +513,7 @@ async def getDetallesEdit(
                         nombre_especialidad = f"Especialidad #{producto.id_especialidad}"
 
                     producto_info["nombre"] = nombre_especialidad
-                    producto_info["tipo"] = "Magno"
+                    producto_info["tipo"] = "id_magno"
                 productos.append(producto_info)
             
             elif det.id_rec:
@@ -528,7 +528,7 @@ async def getDetallesEdit(
                         nombre_especialidad = f"Especialidad #{producto.id_esp}"
 
                     producto_info["nombre"] = nombre_especialidad
-                    producto_info["tipo"] = "Rectangular"
+                    producto_info["tipo"] = "id_rec"
                 productos.append(producto_info)
             
             
@@ -537,17 +537,12 @@ async def getDetallesEdit(
                 producto = session.get(paquete, det.id_paquete)
                 if producto:
                     producto_info["nombre"] = producto.nombre
-                    producto_info["tipo"] = "Paquete"
+                    producto_info["tipo"] = "id_paquete"
                     productos.append(producto_info)
-                
-                        
-        tiempo_transcurrido = datetime.now() - venta.fecha_hora
-        minutos_transcurridos = int(tiempo_transcurrido.total_seconds() / 60)
 
         return {
             "id_venta": venta.id_venta,
             "fecha_hora": venta.fecha_hora,
-            "tiempo_transcurrido_minutos": minutos_transcurridos,
             "cliente": nombre_cliente,
             "sucursal": nombre_sucursal,
             "status": venta.status,
