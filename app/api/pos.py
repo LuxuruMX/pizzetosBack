@@ -412,10 +412,9 @@ async def getDetallesEdit(
         for det in detalles:
             producto_info = {
                 "cantidad": det.cantidad,
-                "nombre": None,
+                "id": None,
                 "tipo": None,
                 "tamaño": None,
-                "precio_unitario": float(det.precio_unitario),
                 "status": det.status
             }
 
@@ -425,69 +424,43 @@ async def getDetallesEdit(
                 
                 producto = session.get(pizzas, det.id_pizza)
                 if producto:
-                    try:
-                        from app.models.especialidadModel import especialidad
-                        especialidad_obj = session.get(especialidad, producto.id_esp)
-                        tamano_obj = session.get(tamanosPizzas, producto.id_tamano)
-                        
-                        nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
-                        nombre_tamano = tamano_obj.tamano if tamano_obj else "Tamaño desconocido"
-                        precio_unitario = det.precio_unitario if det.precio_unitario else Decimal("0.00")
-                    except:
-                        nombre_especialidad = f"Especialidad #{producto.id_esp}"
+                    tamano_obj = session.get(tamanosPizzas, producto.id_tamano)
+                    nombre_tamano = tamano_obj.tamano if tamano_obj else "Tamaño desconocido"
 
-                    producto_info["nombre"] = nombre_especialidad
+                    producto_info["id"] = producto.id_pizza
                     producto_info["tamaño"] = nombre_tamano
                     producto_info["tipo"] = "id_pizza"
-                    producto_info["precio_unitario"] = float(precio_unitario)
                 productos.append(producto_info)
                 
             elif det.id_hamb and not det.id_paquete:
-                from app.models.hamburguesasModel import hamburguesas
-                producto = session.get(hamburguesas, det.id_hamb)
-                if producto:
-                    producto_info["nombre"] = producto.paquete
-                    producto_info["tipo"] = "id_hamb"
+                
+                producto_info["id"] = det.id_hamb
+                producto_info["tipo"] = "id_hamb"
                 productos.append(producto_info)
             
-            elif det.id_cos:
-                from app.models.costillasModel import costillas
-                producto = session.get(costillas, det.id_cos)
-                if producto:
-                    producto_info["nombre"] = producto.orden
-                    producto_info["tipo"] = "id_cos"
+            elif det.id_cos and not det.id_paquete:
+                producto_info["id"] = det.id_cos
+                producto_info["tipo"] = "id_cos"
                 productos.append(producto_info)
             
             elif det.id_alis and not det.id_paquete:
-                from app.models.alitasModel import alitas
-                producto = session.get(alitas, det.id_alis)
-                if producto:
-                    producto_info["nombre"] = producto.orden
-                    producto_info["tipo"] = "id_alis"
+                producto_info["id"] = det.id_alis
+                producto_info["tipo"] = "id_alis"
                 productos.append(producto_info)
             
-            elif det.id_spag:
-                from app.models.spaguettyModel import spaguetty
-                producto = session.get(spaguetty, det.id_spag)
-                if producto:
-                    producto_info["nombre"] = producto.orden
-                    producto_info["tipo"] = "id_spag"
+            elif det.id_spag and not det.id_paquete:
+                producto_info["id"] = det.id_spag
+                producto_info["tipo"] = "id_spag"
                 productos.append(producto_info)
             
-            elif det.id_papa:
-                from app.models.papasModel import papas
-                producto = session.get(papas, det.id_papa)
-                if producto:
-                    producto_info["nombre"] = producto.orden
-                    producto_info["tipo"] = "id_papa"
+            elif det.id_papa and not det.id_paquete:
+                producto_info["id"] = det.id_papa
+                producto_info["tipo"] = "id_papa"
                 productos.append(producto_info)
             
-            elif det.id_maris:
-                from app.models.mariscosModel import mariscos
-                producto = session.get(mariscos, det.id_maris)
-                if producto:
-                    producto_info["nombre"] = producto.nombre
-                    producto_info["tipo"] = "id_maris"
+            elif det.id_maris and not det.id_paquete:
+                producto_info["id"] = det.id_maris
+                producto_info["tipo"] = "id_maris"
                 productos.append(producto_info)
             
             elif det.id_refresco and not det.id_paquete:
@@ -496,49 +469,26 @@ async def getDetallesEdit(
                 producto = session.get(refrescos, det.id_refresco)
                 tamano = session.get(tamanosRefrescos, producto.id_tamano)
                 if producto:
-                    producto_info["nombre"] = producto.nombre
+                    producto_info["id"] = producto.id_refresco
                     producto_info["tipo"] = "id_refresco"
                     producto_info["tamaño"] = tamano.tamano
                 productos.append(producto_info)
             
-            elif det.id_magno:
-                from app.models.magnoModel import magno
-                producto = session.get(magno, det.id_magno)
-                if producto:
-                    try:
-                        from app.models.especialidadModel import especialidad
-                        especialidad_obj = session.get(especialidad, producto.id_especialidad)
-                        nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
-                    except:
-                        nombre_especialidad = f"Especialidad #{producto.id_especialidad}"
-
-                    producto_info["nombre"] = nombre_especialidad
-                    producto_info["tipo"] = "id_magno"
+            elif det.id_magno and not det.id_paquete:
+                producto_info["id"] = det.id_magno
+                producto_info["tipo"] = "id_magno"
                 productos.append(producto_info)
             
-            elif det.id_rec:
-                from app.models.rectangularModel import rectangular
-                producto = session.get(rectangular, det.id_rec)
-                if producto:
-                    try:
-                        from app.models.especialidadModel import especialidad
-                        especialidad_obj = session.get(especialidad, producto.id_esp)
-                        nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
-                    except:
-                        nombre_especialidad = f"Especialidad #{producto.id_esp}"
-
-                    producto_info["nombre"] = nombre_especialidad
-                    producto_info["tipo"] = "id_rec"
+            elif det.id_rec and not det.id_paquete:
+                producto_info["id"] = det.id_rec
+                producto_info["tipo"] = "id_rec"
                 productos.append(producto_info)
             
             
             elif det.id_paquete:
-                from app.models.paquetesModel import paquete
-                producto = session.get(paquete, det.id_paquete)
-                if producto:
-                    producto_info["nombre"] = producto.nombre
-                    producto_info["tipo"] = "id_paquete"
-                    productos.append(producto_info)
+                producto_info["id"] = det.id_paquete
+                producto_info["tipo"] = "id_paquete"
+                productos.append(producto_info)
 
         return {
             "id_venta": venta.id_venta,
@@ -559,7 +509,6 @@ async def getDetallesEdit(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener detalle del pedido: {str(e)}")
-
 
 
 
@@ -872,8 +821,6 @@ async def crear_venta(
             session.add(nuevo_detalle)
 
         session.commit()
-
-        venta_actualizada = session.get(Venta, nueva_venta.id_venta)
         
         statement = select(DetalleVenta).where(DetalleVenta.id_venta == nueva_venta.id_venta)
         detalles_db = session.exec(statement).all()
@@ -930,55 +877,60 @@ async def obtener_venta(
 
 
 
-@router.put("/{id_venta}", response_model=VentaResponse)
-async def editar_venta(
+@router.put("/{id_venta}")
+async def actualizar_venta(
     id_venta: int,
     venta_request: VentaRequest,
     session: Session = Depends(get_session)
 ):
-    
-    # Validar que la venta existe
-    venta = session.get(Venta, id_venta)
-    if not venta:
-        raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
-    
     if not venta_request.items:
         raise HTTPException(status_code=400, detail="La venta debe contener al menos un item")
-    
-    # Validar cliente si cambió
-    if venta_request.id_cliente != venta.id_cliente:
-        cliente = session.get(Cliente, venta_request.id_cliente)
-        if not cliente:
-            raise HTTPException(status_code=404, detail=f"Cliente con ID {venta_request.id_cliente} no encontrado")
-    
-    # Validar sucursal si cambió
-    if venta_request.id_suc != venta.id_suc:
-        sucursal = session.get(Sucursal, venta_request.id_suc)
-        if not sucursal:
-            raise HTTPException(status_code=404, detail=f"Sucursal con ID {venta_request.id_suc} no encontrada")
-    
+
+    # Verificar que la venta existe
+    venta_existente = session.get(Venta, id_venta)
+    if not venta_existente:
+        raise HTTPException(status_code=404, detail=f"Venta con ID {id_venta} no encontrada")
+
+    # Verificar cliente
+    cliente = session.get(Cliente, venta_request.id_cliente)
+    if not cliente:
+        raise HTTPException(status_code=404, detail=f"Cliente con ID {venta_request.id_cliente} no encontrado")
+
+    # Verificar sucursal
+    sucursal = session.get(Sucursal, venta_request.id_suc)
+    if not sucursal:
+        raise HTTPException(status_code=404, detail=f"Sucursal con ID {venta_request.id_suc} no encontrada")
+
     try:
+        # Actualizar datos de la venta
+        venta_existente.id_suc = venta_request.id_suc
+        venta_existente.id_cliente = venta_request.id_cliente
+        venta_existente.total = Decimal(str(venta_request.total))
+        venta_existente.comentarios = venta_request.comentarios
+        venta_existente.status = venta_request.status  # Actualizar status general
+        
+        # Obtener todos los detalles actuales de la venta
         statement = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
-        detalles_antiguos = session.exec(statement).all()
-        for detalle in detalles_antiguos:
-            session.delete(detalle)
+        detalles_existentes = session.exec(statement).all()
         
-        total_calculado = sum(
-            Decimal(str(item.precio_unitario)) * item.cantidad 
-            for item in venta_request.items
-        )
+        # Procesar detalles existentes
+        for detalle in detalles_existentes:
+            if detalle.id_paquete is not None:
+                # Si tiene id_paquete, solo marcar como eliminado (status = 0)
+                detalle.status = 0
+            else:
+                # Si no tiene id_paquete, eliminar físicamente
+                session.delete(detalle)
         
-        venta.id_suc = venta_request.id_suc
-        venta.id_cliente = venta_request.id_cliente
-        venta.total = total_calculado
-        session.add(venta)
         session.flush()
         
+        # Crear los nuevos detalles
         for item in venta_request.items:
             nuevo_detalle = DetalleVenta(
                 id_venta=id_venta,
                 cantidad=item.cantidad,
                 precio_unitario=Decimal(str(item.precio_unitario)),
+                status=item.status,  # Incluir status del item
                 id_hamb=item.id_hamb,
                 id_cos=item.id_cos,
                 id_alis=item.id_alis,
@@ -991,25 +943,14 @@ async def editar_venta(
                 id_paquete=item.id_paquete,
                 detalle_paquete=item.detalle_paquete,
                 id_magno=item.id_magno,
+                id_pizza=item.id_pizza
             )
             session.add(nuevo_detalle)
-        
+
         session.commit()
         
-        statement = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
-        detalles_db = session.exec(statement).all()
-        
-        detalles_respuesta = []
-        for det in detalles_db:
-            subtotal = det.cantidad * det.precio_unitario
-            detalles_respuesta.append({
-                "cantidad": det.cantidad,
-                "precio_unitario": float(det.precio_unitario),
-                "subtotal": float(subtotal)
-            })
-        
         return {"Mensaje": "Venta actualizada exitosamente"}
-    
+
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al actualizar la venta: {str(e)}")

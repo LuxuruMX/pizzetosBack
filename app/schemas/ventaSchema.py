@@ -24,6 +24,7 @@ class VentaRequest(BaseModel):
     id_cliente: int
     total: Decimal
     comentarios: str = None
+    status: int = 1
     items: List[ItemVentaRequest]
     
 class VentaResponse(BaseModel):
