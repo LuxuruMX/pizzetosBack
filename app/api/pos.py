@@ -97,7 +97,6 @@ async def listar_pedidos_resumen(
 async def listar_pedidos_cocina(
     session: Session = Depends(get_session),
     filtro: str = "hoy",
-    status: Optional[int] = None,
     id_suc: Optional[int] = None,
 ):
     try:
@@ -113,13 +112,8 @@ async def listar_pedidos_cocina(
                 Venta.fecha_hora < hoy_fin
             )
 
-        # Filtro por status
-        if status is not None:
-            # Si se especifica un status, solo mostrar ese
-            statement = statement.where(Venta.status == status)
-        else:
-            # Por defecto, solo mostrar Esperando (0) y Preparando (1)
-            statement = statement.where(Venta.status.in_([0, 1]))
+        # Filtrar por status: solo mostrar Esperando (0) y Preparando (1)
+        statement = statement.where(Venta.status.in_([0, 1]))
 
         # Filtro por sucursal
         if id_suc:
@@ -138,7 +132,10 @@ async def listar_pedidos_cocina(
             nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
 
             # Obtener detalles de productos
-            statement_detalles = select(DetalleVenta).where(DetalleVenta.id_venta == venta.id_venta)
+            statement_detalles = select(DetalleVenta).where(
+                DetalleVenta.id_venta == venta.id_venta,
+                DetalleVenta.status.in_([0, 1])  # Filtrar también los detalles con status 0 y 1
+            )
             detalles = session.exec(statement_detalles).all()
 
             # Construir lista de productos con nombres
@@ -375,7 +372,7 @@ async def listar_pedidos_cocina(
             "pedidos": pedidos_cocina,
             "total": len(pedidos_cocina),
             "filtro_aplicado": filtro,
-            "status_filtrado": status,
+            "status_filtrado": None,  # No se filtra por status específico, solo 0 y 1
             "sucursal_filtrada": id_suc
         }
 
