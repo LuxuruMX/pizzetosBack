@@ -131,10 +131,10 @@ async def listar_pedidos_cocina(
             sucursal = session.get(Sucursal, venta.id_suc)
             nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
 
-            # Obtener detalles de productos
+            # Obtener detalles de productos - MODIFICADO: ahora incluye status 0, 1 y 2
             statement_detalles = select(DetalleVenta).where(
                 DetalleVenta.id_venta == venta.id_venta,
-                DetalleVenta.status.in_([0, 1])  # Filtrar también los detalles con status 0 y 1
+                DetalleVenta.status.in_([0, 1, 2])  # Ahora incluye items completados (status 2)
             )
             detalles = session.exec(statement_detalles).all()
 
@@ -375,6 +375,10 @@ async def listar_pedidos_cocina(
             "status_filtrado": None,  # No se filtra por status específico, solo 0 y 1
             "sucursal_filtrada": id_suc
         }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
