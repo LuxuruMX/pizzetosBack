@@ -396,10 +396,6 @@ async def getDetallesEdit(
         if not venta:
             raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
 
-        # Obtener cliente
-        cliente = session.get(Cliente, venta.id_cliente)
-        nombre_cliente = cliente.nombre if cliente else "Desconocido"
-
         # Obtener sucursal
         sucursal = session.get(Sucursal, venta.id_suc)
         nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
@@ -494,7 +490,7 @@ async def getDetallesEdit(
         return {
             "id_venta": venta.id_venta,
             "fecha_hora": venta.fecha_hora,
-            "cliente": nombre_cliente,
+            "cliente": venta.id_cliente,
             "sucursal": nombre_sucursal,
             "status": venta.status,
             "comentarios": venta.comentarios,
