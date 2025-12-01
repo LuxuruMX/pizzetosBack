@@ -7,7 +7,8 @@ from typing import Optional
 from app.db.session import get_session
 from app.models.detallesModel import DetalleVenta
 from app.models.ventaModel import Venta
-from app.schemas.ventaSchema import VentaRequest, VentaResponse
+from app.models.pagosModel import Pago
+from app.schemas.ventaSchema import VentaRequest, VentaResponse, RegistrarPagoRequest
 
 from app.models.clienteModel import Cliente
 from app.models.sucursalModel import Sucursal
@@ -777,6 +778,14 @@ async def crear_venta(
     if not venta_request.items:
         raise HTTPException(status_code=400, detail="La venta debe contener al menos un item")
 
+    # Validación adicional de pagos para tipo_servicio = 1
+    if venta_request.tipo_servicio == 1:
+        if not venta_request.pagos or len(venta_request.pagos) == 0:
+            raise HTTPException(
+                status_code=400, 
+                detail="Debe especificar al menos un método de pago cuando el tipo de servicio es 1 (Comer aquí)"
+            )
+
     cliente = session.get(Cliente, venta_request.id_cliente)
     if not cliente:
         raise HTTPException(status_code=404, detail=f"Cliente con ID {venta_request.id_cliente} no encontrado")
@@ -786,16 +795,35 @@ async def crear_venta(
         raise HTTPException(status_code=404, detail=f"Sucursal con ID {venta_request.id_suc} no encontrada")
 
     try:
+        # Crear la venta
         nueva_venta = Venta(
             id_suc=venta_request.id_suc,
             id_cliente=venta_request.id_cliente,
             fecha_hora=datetime.now(),
             total=Decimal(str(venta_request.total)),
-            comentarios=venta_request.comentarios
+            comentarios=venta_request.comentarios,
+            tipo_servicio=venta_request.tipo_servicio,
+            status=venta_request.status
         )
         session.add(nueva_venta)
-        session.flush()
+        session.flush()  # Para obtener el id_venta generado
 
+        # Si tipo_servicio es 1, crear los registros de pago múltiples
+        pagos_creados = []
+        if venta_request.tipo_servicio == 1 and venta_request.pagos:
+            for pago_request in venta_request.pagos:
+                nuevo_pago = Pago(
+                    id_venta=nueva_venta.id_venta,
+                    id_metpago=pago_request.id_metpago,
+                    monto=Decimal(str(pago_request.monto))
+                )
+                session.add(nuevo_pago)
+                pagos_creados.append({
+                    "id_metpago": pago_request.id_metpago,
+                    "monto": float(pago_request.monto)
+                })
+
+        # Crear los detalles de la venta
         for item in venta_request.items:
             nuevo_detalle = DetalleVenta(
                 id_venta=nueva_venta.id_venta,
@@ -819,6 +847,7 @@ async def crear_venta(
 
         session.commit()
         
+        # Obtener los detalles para la respuesta
         statement = select(DetalleVenta).where(DetalleVenta.id_venta == nueva_venta.id_venta)
         detalles_db = session.exec(statement).all()
         
@@ -831,11 +860,99 @@ async def crear_venta(
                 "subtotal": float(subtotal)
             })
 
-        return {"Mensaje": "Venta creada exitosamente"}
+        return {
+            "Mensaje": "Venta creada exitosamente",
+            "id_venta": nueva_venta.id_venta,
+            "total": float(nueva_venta.total),
+            "pagos_registrados": pagos_creados if pagos_creados else None,
+            "numero_pagos": len(pagos_creados) if pagos_creados else 0
+        }
 
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al procesar la venta: {str(e)}")
+
+
+
+@router.post("/pagar")
+async def registrar_pago_venta(
+    pago_request: RegistrarPagoRequest,
+    session: Session = Depends(get_session)
+):
+    # Verificar que la venta existe
+    venta = session.get(Venta, pago_request.id_venta)
+    if not venta:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Venta con ID {pago_request.id_venta} no encontrada"
+        )
+    
+    # Verificar que la venta sea tipo 0 (Para llevar) o 2 (Domicilio)
+    if venta.tipo_servicio not in [0, 2]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Este endpoint es solo para ventas tipo 0 (Para llevar) o 2 (Domicilio). Esta venta es tipo {venta.tipo_servicio}"
+        )
+    
+    # Verificar si ya tiene pagos registrados
+    statement = select(Pago).where(Pago.id_venta == pago_request.id_venta)
+    pagos_existentes = session.exec(statement).all()
+    
+    if pagos_existentes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Esta venta ya tiene pagos registrados. Use el endpoint de actualizar pagos si desea modificarlos."
+        )
+    
+    try:
+        # Calcular la suma de los pagos
+        suma_pagos = sum(pago.monto for pago in pago_request.pagos)
+        
+        # Validar que la suma de los pagos coincida con el total de la venta
+        if abs(suma_pagos - venta.total) > Decimal('0.01'):  # Tolerancia de 1 centavo
+            raise HTTPException(
+                status_code=400,
+                detail=f'La suma de los pagos ({suma_pagos}) debe ser igual al total de la venta ({venta.total})'
+            )
+        
+        # Crear los registros de pago
+        pagos_creados = []
+        for pago_data in pago_request.pagos:
+            nuevo_pago = Pago(
+                id_venta=pago_request.id_venta,
+                id_metpago=pago_data.id_metpago,
+                monto=Decimal(str(pago_data.monto))
+            )
+            session.add(nuevo_pago)
+            pagos_creados.append({
+                "id_metpago": pago_data.id_metpago,
+                "monto": float(pago_data.monto)
+            })
+        
+        # Actualizar el status de la venta si es necesario
+        # Por ejemplo, podrías cambiar status=0 (pendiente) a status=1 (pagada)
+        venta.status = 1
+        
+        session.commit()
+        
+        return {
+            "Mensaje": "Pago registrado exitosamente",
+            "id_venta": pago_request.id_venta,
+            "total_venta": float(venta.total),
+            "total_pagado": float(suma_pagos),
+            "pagos_registrados": pagos_creados,
+            "numero_pagos": len(pagos_creados),
+            "status_actualizado": venta.status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al registrar el pago: {str(e)}"
+        )
 
 
 

@@ -16,3 +16,4 @@ class Venta(SQLModel, table=True):
     total: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
     status: Optional[int] = Field(default=0)
     comentarios: Optional[str] = Field(default=None)
+    tipo_servicio: Optional[int] = Field(default=0)
