@@ -5,7 +5,8 @@ from sqlalchemy import func
 from fastapi import HTTPException, status
 
 from app.db.session import get_session
-from app.models.clienteModel import Cliente, direccion
+from app.models.clienteModel import Cliente
+from app.models.DireccionesModel import Direccion as direccion
 from app.schemas.clienteSchema import (readCliente,
                                        createCliente,
                                        readClientePOS,

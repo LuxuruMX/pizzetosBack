@@ -8,6 +8,9 @@ from app.db.session import get_session
 from app.models.detallesModel import DetalleVenta
 from app.models.ventaModel import Venta
 from app.models.pagosModel import Pago
+from app.models.pDireccionModel import pDireccion
+from app.models.DireccionesModel import Direccion
+
 from app.schemas.ventaSchema import VentaRequest, VentaResponse, RegistrarPagoRequest
 
 from app.models.clienteModel import Cliente
@@ -778,27 +781,64 @@ async def crear_venta(
     if not venta_request.items:
         raise HTTPException(status_code=400, detail="La venta debe contener al menos un item")
 
-    # Validación adicional de pagos para tipo_servicio = 1
+    # Validar pagos si tipo_servicio es 1
     if venta_request.tipo_servicio == 1:
         if not venta_request.pagos or len(venta_request.pagos) == 0:
             raise HTTPException(
                 status_code=400, 
-                detail="Debe especificar al menos un método de pago cuando el tipo de servicio es 1 (Comer aquí)"
+                detail="Debe especificar al menos un método de pago cuando el tipo de servicio es 1 (para llevar)"
             )
 
-    cliente = session.get(Cliente, venta_request.id_cliente)
-    if not cliente:
-        raise HTTPException(status_code=404, detail=f"Cliente con ID {venta_request.id_cliente} no encontrado")
+    # Validar cliente solo si tipo_servicio es 2 (domicilio)
+    if venta_request.tipo_servicio == 2:
+        if not venta_request.id_cliente:
+            raise HTTPException(
+                status_code=400, 
+                detail="Debe especificar el id_cliente cuando el tipo de servicio es 2 (domicilio)"
+            )
+        
+        cliente = session.get(Cliente, venta_request.id_cliente)
+        if not cliente:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Cliente con ID {venta_request.id_cliente} no encontrado"
+            )
+        
+        # Validar que la dirección existe
+        if not venta_request.id_direccion:
+            raise HTTPException(
+                status_code=400, 
+                detail="Debe especificar el id_direccion cuando el tipo de servicio es 2 (domicilio)"
+            )
+        
+        direccion = session.get(Direccion, venta_request.id_direccion)
+        if not direccion:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Dirección con ID {venta_request.id_direccion} no encontrada"
+            )
 
+    # Validar mesa si tipo_servicio es 0 (comer aquí)
+    if venta_request.tipo_servicio == 0:
+        if venta_request.mesa is None:
+            raise HTTPException(
+                status_code=400, 
+                detail="Debe especificar el número de mesa cuando el tipo de servicio es 0 (comer aquí)"
+            )
+
+    # Validar sucursal
     sucursal = session.get(Sucursal, venta_request.id_suc)
     if not sucursal:
-        raise HTTPException(status_code=404, detail=f"Sucursal con ID {venta_request.id_suc} no encontrada")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Sucursal con ID {venta_request.id_suc} no encontrada"
+        )
 
     try:
         # Crear la venta
         nueva_venta = Venta(
             id_suc=venta_request.id_suc,
-            id_cliente=venta_request.id_cliente,
+            mesa=venta_request.mesa if venta_request.tipo_servicio == 0 else None,
             fecha_hora=datetime.now(),
             total=Decimal(str(venta_request.total)),
             comentarios=venta_request.comentarios,
@@ -806,9 +846,18 @@ async def crear_venta(
             status=venta_request.status
         )
         session.add(nueva_venta)
-        session.flush()  # Para obtener el id_venta generado
-
-        # Si tipo_servicio es 1, crear los registros de pago múltiples
+        session.flush()
+        
+        # Si es domicilio (tipo_servicio = 2), crear registro en pDireccion
+        if venta_request.tipo_servicio == 2:
+            nuevo_domicilio = pDireccion(
+                id_clie=venta_request.id_cliente,
+                id_dir=venta_request.id_direccion,
+                id_venta=nueva_venta.id_venta
+            )
+            session.add(nuevo_domicilio)
+        
+        # Crear pagos si tipo_servicio es 1 (para llevar)
         pagos_creados = []
         if venta_request.tipo_servicio == 1 and venta_request.pagos:
             for pago_request in venta_request.pagos:
@@ -860,13 +909,24 @@ async def crear_venta(
                 "subtotal": float(subtotal)
             })
 
-        return {
+        respuesta = {
             "Mensaje": "Venta creada exitosamente",
             "id_venta": nueva_venta.id_venta,
             "total": float(nueva_venta.total),
-            "pagos_registrados": pagos_creados if pagos_creados else None,
-            "numero_pagos": len(pagos_creados) if pagos_creados else 0
+            "tipo_servicio": nueva_venta.tipo_servicio
         }
+        
+        # Agregar información específica según el tipo de servicio
+        if venta_request.tipo_servicio == 0:
+            respuesta["mesa"] = nueva_venta.mesa
+        elif venta_request.tipo_servicio == 1:
+            respuesta["pagos_registrados"] = pagos_creados
+            respuesta["numero_pagos"] = len(pagos_creados)
+        elif venta_request.tipo_servicio == 2:
+            respuesta["id_cliente"] = venta_request.id_cliente
+            respuesta["id_direccion"] = venta_request.id_direccion
+        
+        return respuesta
 
     except Exception as e:
         session.rollback()
@@ -1249,3 +1309,9 @@ async def completar_pedido(
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al completar pedido: {str(e)}")
+
+
+
+
+
+

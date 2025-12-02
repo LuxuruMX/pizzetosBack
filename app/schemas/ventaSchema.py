@@ -26,20 +26,33 @@ class readVenta(BaseModel):
     
 class VentaRequest(BaseModel):
     id_suc: int
-    id_cliente: int
+    id_cliente: Optional[int] = None
+    id_direccion: Optional[int] = None  # Para tipo_servicio = 2
+    mesa: Optional[int] = None  # Para tipo_servicio = 0
     total: Decimal
     comentarios: str = None
-    status: int = 1
+    status: int = 0
     tipo_servicio: int = 0
     pagos: Optional[List[PagoVentaRequest]] = None
     items: List[ItemVentaRequest]
     
     @model_validator(mode='after')
-    def validar_pagos(self):
-        # Si tipo_servicio es 1, los pagos son obligatorios
+    def validar_datos(self):
+        # Validar según tipo_servicio
+        if self.tipo_servicio == 0:  # Comer aquí
+            if self.mesa is None:
+                raise ValueError('Debe especificar el número de mesa cuando tipo_servicio es 0 (comer aquí)')
+        
+        elif self.tipo_servicio == 2:  # Domicilio
+            if self.id_cliente is None:
+                raise ValueError('Debe especificar el id_cliente cuando tipo_servicio es 2 (domicilio)')
+            if self.id_direccion is None:
+                raise ValueError('Debe especificar el id_direccion cuando tipo_servicio es 2 (domicilio)')
+        
+        # Validar pagos si tipo_servicio es 1 (para llevar)
         if self.tipo_servicio == 1:
             if not self.pagos or len(self.pagos) == 0:
-                raise ValueError('Debe especificar al menos un método de pago cuando tipo_servicio es 1')
+                raise ValueError('Debe especificar al menos un método de pago cuando tipo_servicio es 1 (para llevar)')
             
             # Validar que la suma de los pagos coincida con el total
             suma_pagos = sum(pago.monto for pago in self.pagos)
