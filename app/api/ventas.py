@@ -26,19 +26,19 @@ router=APIRouter()
 
 
 @router.get("/categoria", tags=["Categoria"], response_model=List[CategoriasProd])
-def getCategoria(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
+async def getCategoria(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement=select(CategoriasProd)
     results = session.exec(statement).all()
     return results
 
 @router.get("/tamanos-pizza", tags=["Tamaños Pizza"], response_model=List[tamanosPizzas])
-def getTamanosPizza(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
+async def getTamanosPizza(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement=select(tamanosPizzas)
     results = session.exec(statement).all()
     return results
 
 @router.get("/tamanos-refresco", tags=["Tamaños Refresco"], response_model=List[tamanosRefrescos])
-def getTamanosRefresco(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
+async def getTamanosRefresco(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_producto", "modificar_producto"))):
     statement=select(tamanosRefrescos)
     results = session.exec(statement).all()
     return results

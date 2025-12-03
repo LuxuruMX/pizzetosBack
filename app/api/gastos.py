@@ -21,7 +21,7 @@ from typing import Optional
 from fastapi import Query
 
 @router.get("/", response_model=List[readGastos])
-def getGastos(
+async def getGastos(
     session: Session = Depends(get_session),
     fecha_inicio: Optional[str] = Query(None, description="Fecha de inicio para filtrar (formato: YYYY-MM-DD o ISO 8601)"),
     fecha_fin: Optional[str] = Query(None, description="Fecha de fin para filtrar (formato: YYYY-MM-DD o ISO 8601)"),
@@ -68,7 +68,7 @@ def getGastos(
     return results
 
 @router.post("/")
-def create_gasto(gasto: createGastos, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_recurso"))):
+async def create_gasto(gasto: createGastos, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_recurso"))):
     new_gasto = Gastos(**gasto.model_dump())
     session.add(new_gasto)
     session.commit()
@@ -76,7 +76,7 @@ def create_gasto(gasto: createGastos, session: Session = Depends(get_session), _
     return {"message":"Gasto creado"}
 
 @router.get("/{id_gastos}", response_model=readGastos)
-def getGastoById(id_gastos: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_recurso", "modificar_recurso"))):
+async def getGastoById(id_gastos: int, session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_recurso", "modificar_recurso"))):
     statement = (
         select(Gastos.id_gastos, Gastos.id_suc, Gastos.descripcion, Gastos.precio, Gastos.fecha, Sucursal.nombre.label("sucursal"), Gastos.evaluado)
         .join(Sucursal, Gastos.id_suc == Sucursal.id_suc)
@@ -97,7 +97,7 @@ def getGastoById(id_gastos: int, session: Session = Depends(get_session), _: Non
     return {"message":"No se encontro el gasto"}
 
 @router.delete("/{id_gastos}")
-def deleteGastoById(id_gastos: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_recurso"))):
+async def deleteGastoById(id_gastos: int, session: Session = Depends(get_session), _: None = Depends(require_permission("eliminar_recurso"))):
     statement = select(Gastos).where(Gastos.id_gastos == id_gastos)
     result = session.exec(statement).first()
     if result:
@@ -107,7 +107,7 @@ def deleteGastoById(id_gastos: int, session: Session = Depends(get_session), _: 
     return {"message":"No se encontro el gasto"}
 
 @router.put("/{id_gastos}")
-def updateGasto(id_gastos: int, gasto: createGastos, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_recurso"))):
+async def updateGasto(id_gastos: int, gasto: createGastos, session: Session = Depends(get_session), _: None = Depends(require_permission("modificar_recurso"))):
     statement = select(Gastos).where(Gastos.id_gastos == id_gastos)
     result = session.exec(statement).first()
     if result:

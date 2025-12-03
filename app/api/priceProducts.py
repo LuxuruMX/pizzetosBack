@@ -38,7 +38,7 @@ from app.models.pizzasModel import pizzas
 router = APIRouter()
 
 @router.get("/hamburguesas", response_model=List[priceHamburguesa])
-def get_price_hamburguesas(
+async def get_price_hamburguesas(
     session: Session = Depends(get_session)
 ):
     statement = (
@@ -54,7 +54,7 @@ def get_price_hamburguesas(
 
 
 @router.get("/alitas", response_model=List[PriceAlita])
-def get_price_alitas(
+async def get_price_alitas(
     session: Session = Depends(get_session)
 ):
     statement = (
@@ -70,7 +70,7 @@ def get_price_alitas(
 
 
 @router.get("/costillas", response_model=List[PriceCostilla])
-def get_price_costillas(
+async def get_price_costillas(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
@@ -87,7 +87,7 @@ def get_price_costillas(
     
 
 @router.get("/spaguetty", response_model=List[PriceSpaghetti])
-def get_price_spaguetty(
+async def get_price_spaguetty(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
@@ -103,7 +103,7 @@ def get_price_spaguetty(
     ) for r in result]
     
 @router.get("/papas", response_model=List[PricePapas])
-def get_price_papas(
+async def get_price_papas(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
@@ -119,7 +119,7 @@ def get_price_papas(
     ) for r in result]
     
 @router.get("/rectangular", response_model=List[PriceRectangular])
-def get_price_rectangular(
+async def get_price_rectangular(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
@@ -136,7 +136,7 @@ def get_price_rectangular(
     ) for r in result]
     
 @router.get("/barra", response_model=List[PriceBarra])
-def get_price_barra(
+async def get_price_barra(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
@@ -153,7 +153,7 @@ def get_price_barra(
     ) for r in result]
     
 @router.get("/mariscos", response_model=List[PriceMarisco])
-def get_price_mariscos(
+async def get_price_mariscos(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
@@ -171,7 +171,7 @@ def get_price_mariscos(
     ) for r in result]
 
 @router.get("/refrescos", response_model=List[PriceRefresco])
-def get_price_refrescos(
+async def get_price_refrescos(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
@@ -191,7 +191,7 @@ def get_price_refrescos(
     
     
 @router.get("/paquetes", response_model=List[PricePaquete])
-def get_price_paquete1(
+async def get_price_paquete1(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
@@ -208,7 +208,7 @@ def get_price_paquete1(
 
 
 @router.get("/magno", response_model=List[PriceMagno])
-def get_price_magno(
+async def get_price_magno(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
@@ -226,7 +226,7 @@ def get_price_magno(
     ) for r in result]
 
 @router.get("/pizzas", response_model=List[PricePizza])
-def get_price_pizzas(
+async def get_price_pizzas(
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("ver_venta"))
 ):
