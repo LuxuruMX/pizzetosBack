@@ -59,8 +59,25 @@ async def listar_pedidos_resumen(
 
         pedidos_resumen = []
         for venta in ventas:
-            cliente = session.get(Cliente, venta.id_cliente)
-            nombre_cliente = cliente.nombre if cliente else "Desconocido"
+            # Obtener cliente según el tipo de servicio
+            nombre_cliente = None
+            if venta.tipo_servicio == 2:  # Domicilio
+                # Buscar en pDireccion
+                statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
+                domicilio = session.exec(statement_domicilio).first()
+                
+                if domicilio:
+                    cliente = session.get(Cliente, domicilio.id_clie)
+                    nombre_cliente = cliente.nombre if cliente else "Desconocido"
+            
+            # Si no es domicilio o no se encontró cliente, usar valores por defecto según tipo
+            if not nombre_cliente:
+                if venta.tipo_servicio == 0:
+                    nombre_cliente = f"Mesa {venta.mesa}" if venta.mesa else "Mesa sin número"
+                elif venta.tipo_servicio == 1:
+                    nombre_cliente = "Para llevar"
+                else:
+                    nombre_cliente = "Sin información"
 
             sucursal = session.get(Sucursal, venta.id_suc)
             nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
@@ -73,6 +90,13 @@ async def listar_pedidos_resumen(
                 "id_venta": venta.id_venta,
                 "fecha_hora": venta.fecha_hora,
                 "cliente": nombre_cliente,
+                "tipo_servicio": venta.tipo_servicio,
+                "tipo_servicio_texto": {
+                    0: "Comer aquí",
+                    1: "Para llevar",
+                    2: "Domicilio"
+                }.get(venta.tipo_servicio, "Desconocido"),
+                "mesa": venta.mesa if venta.tipo_servicio == 0 else None,
                 "sucursal": nombre_sucursal,
                 "status": venta.status,
                 "status_texto": {
@@ -127,18 +151,34 @@ async def listar_pedidos_cocina(
 
         pedidos_cocina = []
         for venta in ventas:
-            # Obtener cliente
-            cliente = session.get(Cliente, venta.id_cliente)
-            nombre_cliente = cliente.nombre if cliente else "Desconocido"
+            # Obtener cliente según el tipo de servicio
+            nombre_cliente = None
+            if venta.tipo_servicio == 2:  # Domicilio
+                # Buscar en pDireccion
+                statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
+                domicilio = session.exec(statement_domicilio).first()
+                
+                if domicilio:
+                    cliente = session.get(Cliente, domicilio.id_clie)
+                    nombre_cliente = cliente.nombre if cliente else "Desconocido"
+            
+            # Si no es domicilio o no se encontró cliente, usar valores por defecto según tipo
+            if not nombre_cliente:
+                if venta.tipo_servicio == 0:
+                    nombre_cliente = f"Mesa {venta.mesa}" if venta.mesa else "Mesa sin número"
+                elif venta.tipo_servicio == 1:
+                    nombre_cliente = "Para llevar"
+                else:
+                    nombre_cliente = "Sin información"
 
             # Obtener sucursal
             sucursal = session.get(Sucursal, venta.id_suc)
             nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
 
-            # Obtener detalles de productos - MODIFICADO: ahora incluye status 0, 1 y 2
+            # Obtener detalles de productos
             statement_detalles = select(DetalleVenta).where(
                 DetalleVenta.id_venta == venta.id_venta,
-                DetalleVenta.status.in_([0, 1, 2])  # Ahora incluye items completados (status 2)
+                DetalleVenta.status.in_([0, 1, 2])
             )
             detalles = session.exec(statement_detalles).all()
 
@@ -149,7 +189,7 @@ async def listar_pedidos_cocina(
                     "cantidad": det.cantidad,
                     "nombre": None,
                     "tipo": None,
-                    "status": det.status  # <-- Añadido status del detalle
+                    "status": det.status
                 }
 
                 if det.id_pizza and det.id_paquete != 2:
@@ -253,13 +293,11 @@ async def listar_pedidos_cocina(
                         producto_info["tipo"] = "Rectangular"
                     productos.append(producto_info)
                 
-                
                 if det.id_paquete:
                     if det.id_paquete in [1, 3]:
                         from app.models.pizzasModel import pizzas
                         from app.models.especialidadModel import especialidad
                         
-                        # Parse los IDs del string (ej: "1,2" o "1,2,3")
                         if det.detalle_paquete:
                             ids_pizzas = det.detalle_paquete.split(",")
                             
@@ -279,7 +317,7 @@ async def listar_pedidos_cocina(
                                             "cantidad": 1,
                                             "nombre": nombre_especialidad,
                                             "tipo": f"Paquete {det.id_paquete} - Pizza",
-                                            "status": det.status  # <-- Añadido status del detalle
+                                            "status": det.status
                                         }
                                         productos.append(pizza_info)
                                 
@@ -288,13 +326,13 @@ async def listar_pedidos_cocina(
                                         "cantidad": 1,
                                         "nombre": f"Error al cargar pizza del paquete",
                                         "tipo": f"Paquete {det.id_paquete}",
-                                        "status": det.status  # <-- Añadido status del detalle
+                                        "status": det.status
                                     }
                                     productos.append(error_info)
                         else:
-                            producto_info["nombre"] = f"Paquete {det.id_paquete} - Sin detalle",
-                            producto_info["tipo"] = "Paquete",
-                            producto_info["status"] = det.status  # <-- Añadido status del detalle
+                            producto_info["nombre"] = f"Paquete {det.id_paquete} - Sin detalle"
+                            producto_info["tipo"] = "Paquete"
+                            producto_info["status"] = det.status
                             productos.append(producto_info)
                     elif det.id_paquete == 2:
                         from app.models.pizzasModel import pizzas
@@ -309,7 +347,7 @@ async def listar_pedidos_cocina(
                                 "cantidad": 1,
                                 "nombre": refresco.nombre,
                                 "tipo": f"Paquete {det.id_paquete} - Refresco",
-                                "status": det.status  # <-- Añadido status del detalle
+                                "status": det.status
                             }
                             productos.append(refresco_info)
                         
@@ -324,7 +362,7 @@ async def listar_pedidos_cocina(
                                 "cantidad": 1,
                                 "nombre": nombre_especialidad,
                                 "tipo": f"Paquete {det.id_paquete} - Pizza",
-                                "status": det.status  # <-- Añadido status del detalle
+                                "status": det.status
                             }
                             productos.append(pizza_info)
                         if det.id_alis:
@@ -334,7 +372,7 @@ async def listar_pedidos_cocina(
                                     "cantidad": 1,
                                     "nombre": alita.orden,
                                     "tipo": f"Paquete {det.id_paquete} - Alitas",
-                                    "status": det.status  # <-- Añadido status del detalle
+                                    "status": det.status
                                 }
                                 productos.append(alita_info)
                         else:
@@ -344,7 +382,7 @@ async def listar_pedidos_cocina(
                                     "cantidad": 1,
                                     "nombre": hamburguesa.paquete,
                                     "tipo": f"Paquete {det.id_paquete} - Hamburguesa",
-                                    "status": det.status  # <-- Añadido status del detalle
+                                    "status": det.status
                                 }
                                 productos.append(hamb_info)
                         
@@ -359,6 +397,13 @@ async def listar_pedidos_cocina(
                 "fecha_hora": venta.fecha_hora,
                 "tiempo_transcurrido_minutos": minutos_transcurridos,
                 "cliente": nombre_cliente,
+                "tipo_servicio": venta.tipo_servicio,
+                "tipo_servicio_texto": {
+                    0: "Comer aquí",
+                    1: "Para llevar",
+                    2: "Domicilio"
+                }.get(venta.tipo_servicio, "Desconocido"),
+                "mesa": venta.mesa if venta.tipo_servicio == 0 else None,
                 "sucursal": nombre_sucursal,
                 "status": venta.status,
                 "comentarios": venta.comentarios,
@@ -376,14 +421,10 @@ async def listar_pedidos_cocina(
             "pedidos": pedidos_cocina,
             "total": len(pedidos_cocina),
             "filtro_aplicado": filtro,
-            "status_filtrado": None,  # No se filtra por status específico, solo 0 y 1
+            "status_filtrado": None,
             "sucursal_filtrada": id_suc
         }
     
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-        
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
 
