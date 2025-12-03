@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from typing import List
 from app.db.session import get_session
 from argon2 import PasswordHasher
+from datetime import time
 from app.core.permissions import require_permission, require_any_permission
 
 from app.models.gastosModel import Gastos
@@ -15,13 +16,54 @@ router = APIRouter()
 ph = PasswordHasher()
 
 
+from datetime import datetime
+from typing import Optional
+from fastapi import Query
+
 @router.get("/", response_model=List[readGastos])
-def getGastos(session: Session = Depends(get_session), _: None = Depends(require_permission("ver_recurso"))):
+def getGastos(
+    session: Session = Depends(get_session),
+    fecha_inicio: Optional[str] = Query(None, description="Fecha de inicio para filtrar (formato: YYYY-MM-DD o ISO 8601)"),
+    fecha_fin: Optional[str] = Query(None, description="Fecha de fin para filtrar (formato: YYYY-MM-DD o ISO 8601)"),
+    _: None = Depends(require_permission("ver_recurso"))
+):
     statement = (
         select(Gastos.id_gastos, Gastos.id_suc, Gastos.descripcion, Gastos.precio, Gastos.fecha, Sucursal.nombre.label("sucursal"), Gastos.evaluado)
         .join(Sucursal, Gastos.id_suc == Sucursal.id_suc)
         .order_by(Gastos.id_gastos)
     )
+
+    # Parsear fechas si se proporcionan
+    dt_inicio = None
+    dt_fin = None
+
+    if fecha_inicio:
+        # Intentar parsear como datetime ISO o como fecha simple
+        try:
+            dt_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
+        except ValueError:
+            try:
+                dt_fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+                dt_inicio = datetime.combine(dt_fecha_inicio, time.min)  # 00:00:00
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Formato de fecha_inicio inválido. Use YYYY-MM-DD o ISO 8601.")
+
+    if fecha_fin:
+        try:
+            dt_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
+        except ValueError:
+            try:
+                dt_fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+                dt_fin = datetime.combine(dt_fecha_fin, time.max)  # 23:59:59.999999
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Formato de fecha_fin inválido. Use YYYY-MM-DD o ISO 8601.")
+
+    # Aplicar filtro de fechas si se han parseado correctamente
+    if dt_inicio:
+        statement = statement.where(Gastos.fecha >= dt_inicio)
+    if dt_fin:
+        statement = statement.where(Gastos.fecha <= dt_fin)
+
     results = session.exec(statement).all()
     return results
 
