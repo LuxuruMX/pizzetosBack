@@ -33,6 +33,7 @@ class VentaRequest(BaseModel):
     comentarios: str = None
     status: int = 0
     tipo_servicio: int = 0
+    nombreClie: Optional[str] = None
     pagos: Optional[List[PagoVentaRequest]] = None
     items: List[ItemVentaRequest]
     

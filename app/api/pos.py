@@ -908,7 +908,8 @@ async def crear_venta(
             total=Decimal(str(venta_request.total)),
             comentarios=venta_request.comentarios,
             tipo_servicio=venta_request.tipo_servicio,
-            status=venta_request.status
+            status=venta_request.status,
+            nombreClie=venta_request.nombreClie
         )
         session.add(nueva_venta)
         session.flush()
@@ -990,6 +991,10 @@ async def crear_venta(
         elif venta_request.tipo_servicio == 2:
             respuesta["id_cliente"] = venta_request.id_cliente
             respuesta["id_direccion"] = venta_request.id_direccion
+        
+        # Agregar nombreClie a la respuesta si existe
+        if venta_request.nombreClie:
+            respuesta["nombreClie"] = venta_request.nombreClie
         
         return respuesta
 
