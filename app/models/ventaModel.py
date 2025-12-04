@@ -17,3 +17,4 @@ class Venta(SQLModel, table=True):
     status: Optional[int] = Field(default=0)
     comentarios: Optional[str] = Field(default=None)
     tipo_servicio: Optional[int] = Field(default=0)
+    nombreClie: Optional[str] = Field(default=None)

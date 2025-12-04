@@ -15,7 +15,7 @@ from app.schemas.clienteSchema import (readCliente,
                                        ClienteConDirecciones,
                                        DireccionResponse,
                                        updateCliente,
-                                       updateDireccion)
+                                       onlyDireccion)
 
 from app.core.permissions import require_permission, require_any_permission
 
@@ -33,11 +33,13 @@ def getClientesPOS(session: Session = Depends(get_session), _: None = Depends(re
     return results
 
 
+
 @router.get("/", response_model=List[readCliente])
 def getClientes(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_venta", "crear_venta"))):
     statement=select(Cliente)
     results = session.exec(statement).all()
     return results
+
 
 
 @router.post("/")
@@ -79,6 +81,7 @@ def create_Cliente(
             status_code=500, 
             detail=f"Error al crear cliente y direcciones: {str(e)}"
         )
+
 
 
 @router.post("/{id_clie}/direcciones", response_model=readDireccion)
@@ -123,6 +126,7 @@ def addDireccionCliente(
         )
 
 
+
 @router.get("/{id_clie}", response_model=ClienteConDirecciones)
 def getClienteConDirecciones(
     id_clie: int,
@@ -160,6 +164,32 @@ def getClienteConDirecciones(
             for dir in direcciones_cliente
         ]
     )
+
+
+
+@router.get("/direccion/{id_clie}", response_model=List[onlyDireccion])
+def getDireccion(
+    id_clie: int,
+    session: Session = Depends(get_session),
+    _: None = Depends(require_any_permission("ver_venta", "crear_venta", "editar_venta"))
+):    
+    # 2. Buscar todas las direcciones del cliente
+    statement = select(direccion).where(direccion.id_clie == id_clie)
+    direcciones_cliente = session.exec(statement).all()
+    
+    return [
+            onlyDireccion(
+                id_dir=dir.id_dir,
+                calle=dir.calle,
+                manzana=dir.manzana,
+                lote=dir.lote,
+                colonia=dir.colonia,
+                referencia=dir.referencia
+            )
+            for dir in direcciones_cliente
+        ]
+
+
 
 @router.put("/{id_clie}", response_model=ClienteConDirecciones)
 def updateClienteConDirecciones(

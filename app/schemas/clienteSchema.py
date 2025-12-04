@@ -61,3 +61,12 @@ class updateCliente(BaseModel):
     apellido: Optional[str] = Field(default=None, min_length=3, max_length=100)
     telefono: Optional[int] = Field(default=None, ge=10000000, le=9999999999)
     direcciones: Optional[List[updateDireccion]] = None
+
+
+class onlyDireccion(BaseModel):
+    id_dir: int
+    calle: str
+    manzana: Optional[str]
+    lote: Optional[str]
+    colonia: Optional[str]
+    referencia: Optional[str]

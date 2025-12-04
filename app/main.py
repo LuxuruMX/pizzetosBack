@@ -16,7 +16,7 @@ from app.api import (login,
 app = FastAPI(
     title="Pizzetos",
     description="Backend de pizzetos bien chingon",
-    version="1.0.0"
+    version="1.5.0"
 )
 
 app.add_middleware(
