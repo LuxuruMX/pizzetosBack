@@ -73,7 +73,14 @@ def create_Cliente(
         session.commit()
         session.refresh(nuevo_cliente)
         
-        return {"Message": "Cliente y direcciones creadas exitosamente"}
+        # ✅ CAMBIO: Devolver el cliente creado con su ID
+        return {
+            "Message": "Cliente y direcciones creadas exitosamente",
+            "id_clie": nuevo_cliente.id_clie,
+            "nombre": nuevo_cliente.nombre,
+            "apellido": nuevo_cliente.apellido,
+            "telefono": nuevo_cliente.telefono
+        }
         
     except Exception as e:
         session.rollback()
@@ -131,7 +138,7 @@ def addDireccionCliente(
 def getClienteConDirecciones(
     id_clie: int,
     session: Session = Depends(get_session),
-    _: None = Depends(require_any_permission("ver_venta", "crear_venta", "editar_venta"))
+    _: None = Depends(require_any_permission("ver_venta", "crear_venta"))
 ):
     # 1. Buscar el cliente
     cliente = session.get(Cliente, id_clie)

@@ -1383,5 +1383,3 @@ async def completar_pedido(
 
 
 
-
-
