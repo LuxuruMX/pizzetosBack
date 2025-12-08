@@ -46,7 +46,6 @@ async def listar_pedidos_resumen(
             inicio_mes = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             statement = statement.where(Venta.fecha_hora >= inicio_mes)
         elif filtro == "todos":
-            # No aplicar filtro de fecha
             pass
 
         if status is not None:
@@ -61,23 +60,31 @@ async def listar_pedidos_resumen(
         for venta in ventas:
             # Obtener cliente según el tipo de servicio
             nombre_cliente = None
-            if venta.tipo_servicio == 2:  # Domicilio
-                # Buscar en pDireccion
+            
+            if venta.tipo_servicio == 0:  # Comer aquí
+                # Mostrar Mesa X - Nombre del cliente
+                mesa_num = venta.mesa if venta.mesa else "S/N"
+                nombre_base = venta.nombreClie if venta.nombreClie else "Sin nombre"
+                nombre_cliente = f"Mesa {mesa_num} - {nombre_base}"
+                    
+            elif venta.tipo_servicio == 1:  # Para llevar
+                # Solo mostrar el nombre del cliente
+                nombre_cliente = venta.nombreClie if venta.nombreClie else "Para llevar"
+                    
+            elif venta.tipo_servicio == 2:  # Domicilio
+                # Se queda como está (buscar en pDireccion)
                 statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
                 domicilio = session.exec(statement_domicilio).first()
                 
-                if domicilio:
+                if domicilio and domicilio.id_clie:
                     cliente = session.get(Cliente, domicilio.id_clie)
-                    nombre_cliente = cliente.nombre if cliente else "Desconocido"
-            
-            # Si no es domicilio o no se encontró cliente, usar valores por defecto según tipo
-            if not nombre_cliente:
-                if venta.tipo_servicio == 0:
-                    nombre_cliente = f"Mesa {venta.mesa}" if venta.mesa else "Mesa sin número"
-                elif venta.tipo_servicio == 1:
-                    nombre_cliente = "Para llevar"
+                    nombre_cliente = cliente.nombre if cliente else "Cliente sin nombre"
                 else:
-                    nombre_cliente = "Sin información"
+                    nombre_cliente = venta.nombreClie if venta.nombreClie else "Domicilio sin cliente"
+
+            # Valor por defecto si algo falló
+            if not nombre_cliente:
+                nombre_cliente = "Sin información"
 
             sucursal = session.get(Sucursal, venta.id_suc)
             nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
@@ -153,23 +160,28 @@ async def listar_pedidos_cocina(
         for venta in ventas:
             # Obtener cliente según el tipo de servicio
             nombre_cliente = None
-            if venta.tipo_servicio == 2:  # Domicilio
-                # Buscar en pDireccion
+            
+            if venta.tipo_servicio == 0:
+                mesa_num = venta.mesa if venta.mesa else "S/N"
+                nombre_base = venta.nombreClie if venta.nombreClie else "Sin nombre"
+                nombre_cliente = f"Mesa {mesa_num} - {nombre_base}"
+                    
+            elif venta.tipo_servicio == 1:
+                nombre_cliente = venta.nombreClie if venta.nombreClie else "Para llevar"
+                    
+            elif venta.tipo_servicio == 2:
                 statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
                 domicilio = session.exec(statement_domicilio).first()
                 
-                if domicilio:
+                if domicilio and domicilio.id_clie:
                     cliente = session.get(Cliente, domicilio.id_clie)
-                    nombre_cliente = cliente.nombre if cliente else "Desconocido"
-            
-            # Si no es domicilio o no se encontró cliente, usar valores por defecto según tipo
-            if not nombre_cliente:
-                if venta.tipo_servicio == 0:
-                    nombre_cliente = f"Mesa {venta.mesa}" if venta.mesa else "Mesa sin número"
-                elif venta.tipo_servicio == 1:
-                    nombre_cliente = "Para llevar"
+                    nombre_cliente = cliente.nombre if cliente else "Cliente sin nombre"
                 else:
-                    nombre_cliente = "Sin información"
+                    nombre_cliente = venta.nombreClie if venta.nombreClie else "Domicilio sin cliente"
+
+            # Valor por defecto si algo falló
+            if not nombre_cliente:
+                nombre_cliente = "Sin información"
 
             # Obtener sucursal
             sucursal = session.get(Sucursal, venta.id_suc)
