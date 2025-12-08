@@ -487,7 +487,6 @@ async def getDetallesEdit(
                 productos.append(producto_info)
                 
             elif det.id_hamb and not det.id_paquete:
-                
                 producto_info["id"] = det.id_hamb
                 producto_info["tipo"] = "id_hamb"
                 productos.append(producto_info)
@@ -538,17 +537,18 @@ async def getDetallesEdit(
                 producto_info["tipo"] = "id_rec"
                 productos.append(producto_info)
             
-            
             elif det.id_paquete:
                 producto_info["id"] = det.id_paquete
                 producto_info["tipo"] = "id_paquete"
                 productos.append(producto_info)
 
-        return {
+        # Construir respuesta base
+        response = {
             "id_venta": venta.id_venta,
             "fecha_hora": venta.fecha_hora,
-            "cliente": venta.id_cliente,
+            "id_suc": venta.id_suc,
             "sucursal": nombre_sucursal,
+            "tipo_servicio": venta.tipo_servicio,
             "status": venta.status,
             "comentarios": venta.comentarios,
             "status_texto": {
@@ -558,6 +558,33 @@ async def getDetallesEdit(
             }.get(venta.status, "Desconocido"),
             "productos": productos
         }
+
+        # Añadir campos según tipo_servicio
+        if venta.tipo_servicio == 0:  # Comedor
+            response["mesa"] = venta.mesa
+            response["nombreClie"] = venta.nombreClie
+        
+        elif venta.tipo_servicio == 1:  # Para Llevar
+            response["nombreClie"] = venta.nombreClie
+            
+            # Obtener pagos
+            from app.models.pagosModel import Pago
+            statement_pagos = select(Pago).where(Pago.id_venta == id_venta)
+            pagos = session.exec(statement_pagos).all()
+            
+            response["pagos"] = [
+                {
+                    "id_metpago": pago.id_metpago,
+                    "monto": pago.monto
+                }
+                for pago in pagos
+            ]
+        
+        elif venta.tipo_servicio == 2:
+            response["id_cliente"] = getattr(venta, 'id_cliente', None)
+            response["id_direccion"] = getattr(venta, 'id_direccion', None)
+
+        return response
 
     except HTTPException:
         raise
