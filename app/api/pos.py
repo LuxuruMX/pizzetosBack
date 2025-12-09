@@ -1174,46 +1174,153 @@ async def actualizar_venta(
     if not venta_existente:
         raise HTTPException(status_code=404, detail=f"Venta con ID {id_venta} no encontrada")
 
-    # Verificar cliente
-    cliente = session.get(Cliente, venta_request.id_cliente)
-    if not cliente:
-        raise HTTPException(status_code=404, detail=f"Cliente con ID {venta_request.id_cliente} no encontrado")
+    # Validar pagos si tipo_servicio es 1
+    if venta_request.tipo_servicio == 1:
+        if not venta_request.pagos or len(venta_request.pagos) == 0:
+            raise HTTPException(
+                status_code=400, 
+                detail="Debe especificar al menos un método de pago cuando el tipo de servicio es 1 (para llevar)"
+            )
+
+    # Validar cliente solo si tipo_servicio es 2 (domicilio)
+    if venta_request.tipo_servicio == 2:
+        if not venta_request.id_cliente:
+            raise HTTPException(
+                status_code=400, 
+                detail="Debe especificar el id_cliente cuando el tipo de servicio es 2 (domicilio)"
+            )
+        
+        cliente = session.get(Cliente, venta_request.id_cliente)
+        if not cliente:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Cliente con ID {venta_request.id_cliente} no encontrado"
+            )
+        
+        # Validar que la dirección existe
+        if not venta_request.id_direccion:
+            raise HTTPException(
+                status_code=400, 
+                detail="Debe especificar el id_direccion cuando el tipo de servicio es 2 (domicilio)"
+            )
+        
+        direccion = session.get(Direccion, venta_request.id_direccion)
+        if not direccion:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Dirección con ID {venta_request.id_direccion} no encontrada"
+            )
+
+    # Validar mesa si tipo_servicio es 0 (comer aquí)
+    if venta_request.tipo_servicio == 0:
+        if venta_request.mesa is None:
+            raise HTTPException(
+                status_code=400, 
+                detail="Debe especificar el número de mesa cuando el tipo de servicio es 0 (comer aquí)"
+            )
 
     # Verificar sucursal
     sucursal = session.get(Sucursal, venta_request.id_suc)
     if not sucursal:
-        raise HTTPException(status_code=404, detail=f"Sucursal con ID {venta_request.id_suc} no encontrada")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Sucursal con ID {venta_request.id_suc} no encontrada"
+        )
 
     try:
         # Actualizar datos de la venta
         venta_existente.id_suc = venta_request.id_suc
-        venta_existente.id_cliente = venta_request.id_cliente
+        venta_existente.mesa = venta_request.mesa if venta_request.tipo_servicio == 0 else None
         venta_existente.total = Decimal(str(venta_request.total))
         venta_existente.comentarios = venta_request.comentarios
-        venta_existente.status = venta_request.status  # Actualizar status general
+        venta_existente.tipo_servicio = venta_request.tipo_servicio
+        venta_existente.status = venta_request.status
+        venta_existente.nombreClie = venta_request.nombreClie
+        
+        # Actualizar o crear registro en pDireccion si es domicilio (tipo_servicio = 2)
+        if venta_request.tipo_servicio == 2:
+            # Buscar si ya existe un registro de domicilio para esta venta
+            statement_domicilio = select(pDireccion).where(pDireccion.id_venta == id_venta)
+            domicilio_existente = session.exec(statement_domicilio).first()
+            
+            if domicilio_existente:
+                # Actualizar el registro existente
+                domicilio_existente.id_clie = venta_request.id_cliente
+                domicilio_existente.id_dir = venta_request.id_direccion
+            else:
+                # Crear nuevo registro
+                nuevo_domicilio = pDireccion(
+                    id_clie=venta_request.id_cliente,
+                    id_dir=venta_request.id_direccion,
+                    id_venta=id_venta
+                )
+                session.add(nuevo_domicilio)
+        else:
+            # Si cambió el tipo de servicio y ya no es domicilio, eliminar registro de pDireccion si existe
+            statement_domicilio = select(pDireccion).where(pDireccion.id_venta == id_venta)
+            domicilio_existente = session.exec(statement_domicilio).first()
+            if domicilio_existente:
+                session.delete(domicilio_existente)
+        
+        # Manejar pagos si tipo_servicio es 1 (para llevar)
+        # Primero eliminar pagos existentes
+        statement_pagos = select(Pago).where(Pago.id_venta == id_venta)
+        pagos_existentes = session.exec(statement_pagos).all()
+        for pago in pagos_existentes:
+            session.delete(pago)
+        
+        # Crear nuevos pagos si tipo_servicio es 1
+        pagos_creados = []
+        if venta_request.tipo_servicio == 1 and venta_request.pagos:
+            for pago_request in venta_request.pagos:
+                nuevo_pago = Pago(
+                    id_venta=id_venta,
+                    id_metpago=pago_request.id_metpago,
+                    monto=Decimal(str(pago_request.monto))
+                )
+                session.add(nuevo_pago)
+                pagos_creados.append({
+                    "id_metpago": pago_request.id_metpago,
+                    "monto": float(pago_request.monto)
+                })
+        
+        session.flush()
         
         # Obtener todos los detalles actuales de la venta
         statement = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
         detalles_existentes = session.exec(statement).all()
         
-        # Procesar detalles existentes
+        # Separar paquetes de items normales en el request
+        items_paquetes = {}  # {id_paquete: item}
+        items_normales = []
+        
+        for item in venta_request.items:
+            if item.id_paquete is not None:
+                items_paquetes[item.id_paquete] = item
+            else:
+                items_normales.append(item)
+        
         for detalle in detalles_existentes:
             if detalle.id_paquete is not None:
-                # Si tiene id_paquete, solo marcar como eliminado (status = 0)
-                detalle.status = 0
+                # Es un paquete - solo actualizar status si cambió
+                if detalle.id_paquete in items_paquetes:
+                    nuevo_status = items_paquetes[detalle.id_paquete].status
+                    if detalle.status != nuevo_status:
+                        detalle.status = nuevo_status
+                # No hacer nada si el paquete no viene en el request
             else:
-                # Si no tiene id_paquete, eliminar físicamente
+                # No es paquete - eliminar físicamente
                 session.delete(detalle)
         
         session.flush()
         
-        # Crear los nuevos detalles
-        for item in venta_request.items:
+        # Crear solo los nuevos items normales (no paquetes)
+        for item in items_normales:
             nuevo_detalle = DetalleVenta(
                 id_venta=id_venta,
                 cantidad=item.cantidad,
                 precio_unitario=Decimal(str(item.precio_unitario)),
-                status=item.status,  # Incluir status del item
+                status=item.status,
                 id_hamb=item.id_hamb,
                 id_cos=item.id_cos,
                 id_alis=item.id_alis,
@@ -1232,7 +1339,26 @@ async def actualizar_venta(
 
         session.commit()
         
-        return {"Mensaje": "Venta actualizada exitosamente"}
+        respuesta = {
+            "Mensaje": "Venta actualizada exitosamente",
+            "id_venta": id_venta,
+            "tipo_servicio": venta_existente.tipo_servicio
+        }
+        
+        # Agregar información específica según el tipo de servicio
+        if venta_request.tipo_servicio == 0:
+            respuesta["mesa"] = venta_existente.mesa
+        elif venta_request.tipo_servicio == 1:
+            respuesta["pagos_registrados"] = pagos_creados
+            respuesta["numero_pagos"] = len(pagos_creados)
+        elif venta_request.tipo_servicio == 2:
+            respuesta["id_cliente"] = venta_request.id_cliente
+            respuesta["id_direccion"] = venta_request.id_direccion
+        
+        if venta_request.nombreClie:
+            respuesta["nombreClie"] = venta_request.nombreClie
+        
+        return respuesta
 
     except Exception as e:
         session.rollback()
