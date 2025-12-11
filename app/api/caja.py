@@ -131,3 +131,5 @@ async def obtener_flujo_caja(
     )
     
     return flujo
+
+
