@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select, update
+from sqlmodel import Session, select
 from decimal import Decimal
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
 from app.db.session import get_session
 from app.models.cajaModel import Caja

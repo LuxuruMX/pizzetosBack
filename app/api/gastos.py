@@ -69,6 +69,12 @@ async def getGastos(
 
 @router.post("/")
 async def create_gasto(gasto: createGastos, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_recurso"))):
+    # Verificar que la caja existe
+    from app.models.cajaModel import Caja
+    caja = session.get(Caja, gasto.id_caja)
+    if not caja:
+        raise HTTPException(status_code=404, detail="Caja no encontrada")
+    
     new_gasto = Gastos(**gasto.model_dump())
     session.add(new_gasto)
     session.commit()
