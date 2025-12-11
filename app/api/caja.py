@@ -54,3 +54,27 @@ async def cerrar_caja(
     session.add(caja)
     session.commit()
     return {"message": "Caja cerrada exitosamente"}
+
+
+
+@router.post("/movimiento/{id_caja}")
+async def registrar_movimiento_caja(
+    id_caja: int,
+    movimiento: MovimientoCajaRequest,
+    session: Session = Depends(get_session)
+):
+    caja = session.get(Caja, id_caja)
+    if not caja or caja.status != 1:
+        raise HTTPException(status_code=404, detail="Caja no encontrada o no está abierta")
+    
+    nuevo_movimiento = MovimientoCaja(
+        id_caja=id_caja,
+        tipo_movimiento=movimiento.tipo_movimiento,
+        monto=movimiento.monto,
+        concepto=movimiento.concepto,
+        fecha_hora=datetime.now()
+    )
+    session.add(nuevo_movimiento)
+    session.commit()
+    session.refresh(nuevo_movimiento)
+    return {"message": "Movimiento registrado exitosamente", "id_movimiento": nuevo_movimiento.id_movimiento}

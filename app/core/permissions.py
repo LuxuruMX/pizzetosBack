@@ -7,12 +7,12 @@ from app.models.permisosModel import permisos as Permisos
 from app.core.dependency import verify_token, TokenData
 
 
-def get_user_permissions(user_id: int, session: Session) -> dict:
+def get_user_permissions(id_emp: int, session: Session) -> dict:
     """
     Obtiene los permisos del empleado desde la tabla Permisos.
     """
     # Buscar empleado
-    empleado = session.get(Empleados, user_id)
+    empleado = session.get(Empleados, id_emp)
     if not empleado:
         return {}
     
@@ -53,7 +53,7 @@ def require_permission(permission_name: str):
         session: Session = Depends(get_session)
     ):
         # Obtener permisos del usuario
-        permisos = get_user_permissions(token_data.user_id, session)
+        permisos = get_user_permissions(token_data.id_emp, session)
         
         # Verificar si tiene el permiso
         if not permisos.get(permission_name, False):
@@ -74,7 +74,7 @@ def require_any_permission(*permission_names: str):
         token_data: TokenData = Depends(verify_token),
         session: Session = Depends(get_session)
     ):
-        permisos = get_user_permissions(token_data.user_id, session)
+        permisos = get_user_permissions(token_data.id_emp, session)
         
         has_permission = any(
             permisos.get(perm, False) for perm in permission_names
@@ -97,7 +97,7 @@ def require_all_permissions(*permission_names: str):
         token_data: TokenData = Depends(verify_token),
         session: Session = Depends(get_session)
     ):
-        permisos = get_user_permissions(token_data.user_id, session)
+        permisos = get_user_permissions(token_data.id_emp, session)
         
         missing_perms = [
             perm for perm in permission_names 
