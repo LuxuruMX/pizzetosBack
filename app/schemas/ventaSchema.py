@@ -34,6 +34,7 @@ class VentaRequest(BaseModel):
     status: int = 0
     tipo_servicio: int = 0
     nombreClie: Optional[str] = None
+    id_caja: int = None
     pagos: Optional[List[PagoVentaRequest]] = None
     items: List[ItemVentaRequest]
     

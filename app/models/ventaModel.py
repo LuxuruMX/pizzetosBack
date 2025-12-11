@@ -18,3 +18,4 @@ class Venta(SQLModel, table=True):
     comentarios: Optional[str] = Field(default=None)
     tipo_servicio: Optional[int] = Field(default=0)
     nombreClie: Optional[str] = Field(default=None)
+    id_caja: int = Field(default=None, foreign_key="Caja.id_caja")
