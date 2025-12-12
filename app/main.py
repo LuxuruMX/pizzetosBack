@@ -10,7 +10,8 @@ from app.api import (login,
                     recursos,
                     gastos,
                     pos,
-                    priceProducts)
+                    priceProducts,
+                    caja)
 
 
 app = FastAPI(
@@ -47,3 +48,4 @@ app.include_router(recursos.router, prefix="/recursos", tags=["recursos"])
 app.include_router(gastos.router, prefix="/gastos", tags=["gastos"])
 app.include_router(pos.router, prefix="/pos", tags=["punto de venta"])
 app.include_router(priceProducts.router, prefix="/prices", tags=["precios productos"])
+app.include_router(caja.router, prefix="/caja", tags=["caja"])

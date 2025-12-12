@@ -1,24 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
-from typing import List
+from typing import List, Optional
 from app.db.session import get_session
 from argon2 import PasswordHasher
-from datetime import time
-from app.core.permissions import require_permission, require_any_permission
+from datetime import time, datetime
+from fastapi import Query
 
 from app.models.gastosModel import Gastos
 from app.schemas.gastosSchema import readGastos, createGastos
-
 from app.models.sucursalModel import Sucursal
+from app.core.permissions import require_permission, require_any_permission
 
 
 router = APIRouter()
 ph = PasswordHasher()
 
-
-from datetime import datetime
-from typing import Optional
-from fastapi import Query
 
 @router.get("/", response_model=List[readGastos])
 async def getGastos(
@@ -38,13 +34,12 @@ async def getGastos(
     dt_fin = None
 
     if fecha_inicio:
-        # Intentar parsear como datetime ISO o como fecha simple
         try:
             dt_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
         except ValueError:
             try:
                 dt_fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
-                dt_inicio = datetime.combine(dt_fecha_inicio, time.min)  # 00:00:00
+                dt_inicio = datetime.combine(dt_fecha_inicio, time.min)
             except ValueError:
                 raise HTTPException(status_code=400, detail="Formato de fecha_inicio inválido. Use YYYY-MM-DD o ISO 8601.")
 
@@ -54,11 +49,10 @@ async def getGastos(
         except ValueError:
             try:
                 dt_fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
-                dt_fin = datetime.combine(dt_fecha_fin, time.max)  # 23:59:59.999999
+                dt_fin = datetime.combine(dt_fecha_fin, time.max)
             except ValueError:
                 raise HTTPException(status_code=400, detail="Formato de fecha_fin inválido. Use YYYY-MM-DD o ISO 8601.")
 
-    # Aplicar filtro de fechas si se han parseado correctamente
     if dt_inicio:
         statement = statement.where(Gastos.fecha >= dt_inicio)
     if dt_fin:

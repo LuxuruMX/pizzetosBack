@@ -50,7 +50,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = D
     access_token = create_access_token(
         data={
             "sub": empleado.nickName,
-            "user_id": empleado.id_emp,
+            "id_emp": empleado.id_emp,
             "id_cargo": empleado.id_ca,
             "permisos": permisos_dict,
             "sucursal": empleado.id_suc

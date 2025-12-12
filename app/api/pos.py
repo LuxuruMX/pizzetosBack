@@ -948,7 +948,8 @@ async def crear_venta(
             comentarios=venta_request.comentarios,
             tipo_servicio=venta_request.tipo_servicio,
             status=venta_request.status,
-            nombreClie=venta_request.nombreClie
+            nombreClie=venta_request.nombreClie,
+            id_caja=venta_request.id_caja
         )
         session.add(nueva_venta)
         session.flush()

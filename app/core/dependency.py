@@ -12,7 +12,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 class TokenData(BaseModel):
     username: Optional[str] = None
-    user_id: Optional[int] = None  # ← Agregar esto
+    id_emp: Optional[int] = None  # ← Agregar esto
     id_cargo: Optional[int] = None  # ← Opcional, pero útil
 
 def verify_token(token: str = Depends(oauth2_scheme)) -> TokenData:
@@ -24,14 +24,14 @@ def verify_token(token: str = Depends(oauth2_scheme)) -> TokenData:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        user_id: int = payload.get("user_id")  # ← Agregar esto
+        id_emp: int = payload.get("id_emp")  # ← Agregar esto
         
-        if username is None or user_id is None:  # ← Validar ambos
+        if username is None or id_emp is None:  # ← Validar ambos
             raise credentials_exception
             
         return TokenData(
             username=username,
-            user_id=user_id  # ← Agregar esto
+            id_emp=id_emp  # ← Agregar esto
         )
     except InvalidTokenError:
         raise credentials_exception
