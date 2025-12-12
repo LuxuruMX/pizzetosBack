@@ -25,8 +25,7 @@ from app.models import (empleadoModel,
                         pizzasModel,
                         DireccionesModel,
                         pDireccionModel,
-                        cajaModel,
-                        movimientoCajaModel)
+                        cajaModel)
 
 DATABASE_URL = "mysql+pymysql://root:@localhost:3306/pizzetos_db"
 
