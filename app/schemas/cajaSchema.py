@@ -27,18 +27,14 @@ class MovimientoCajaRequest(BaseModel):
 
 
 
-class FlujoCajaResponse(BaseModel):
+class CajaDetalleResponse(BaseModel):
     id_caja: int
     fecha_apertura: datetime
-    fecha_cierre: Optional[datetime]
-    monto_inicial: Decimal
-    ventas_efectivo: Decimal
-    ventas_tarjeta: Decimal
-    ventas_transferencia: Decimal
-    total_ventas: Decimal
-    movimientos_extra: Decimal  # ingresos - egresos
-    monto_esperado: Decimal
-    monto_final: Optional[Decimal]
-    diferencia: Optional[Decimal]
-    status: int
-    nombre_usuario: str
+    estado: str  # "abierta", "cerrada"
+    usuario_apertura: str
+    monto_inicial: float
+    total_ventas: float
+    numero_ventas: int
+    total_efectivo: float
+    total_tarjeta: float
+    total_transferencia: float
