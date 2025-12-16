@@ -19,6 +19,12 @@ from app.models.sucursalModel import Sucursal
 router = APIRouter()
 
 
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session, select
+from datetime import datetime, timedelta
+
+
 @router.get("/pedidos-resumen")
 async def listar_pedidos_resumen(
     session: Session = Depends(get_session),
@@ -58,6 +64,11 @@ async def listar_pedidos_resumen(
 
         pedidos_resumen = []
         for venta in ventas:
+            # Verificar si tiene pagos registrados
+            statement_pago = select(Pago).where(Pago.id_venta == venta.id_venta)
+            pago_existente = session.exec(statement_pago).first()
+            pagado = pago_existente is not None  # True si existe al menos un pago
+
             # Obtener cliente según el tipo de servicio
             nombre_cliente = None
             
@@ -112,7 +123,8 @@ async def listar_pedidos_resumen(
                     2: "Completado"
                 }.get(venta.status, "Desconocido"),
                 "total": float(venta.total),
-                "cantidad_items": total_items
+                "cantidad_items": total_items,
+                "pagado": pagado  # Nuevo campo
             })
 
         return {
@@ -125,7 +137,6 @@ async def listar_pedidos_resumen(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
-
 
 
 @router.get("/pedidos-cocina")
@@ -1098,10 +1109,6 @@ async def registrar_pago_venta(
                 "id_metpago": pago_data.id_metpago,
                 "monto": float(pago_data.monto)
             })
-        
-        # Actualizar el status de la venta si es necesario
-        # Por ejemplo, podrías cambiar status=0 (pendiente) a status=1 (pagada)
-        venta.status = 1
         
         session.commit()
         
