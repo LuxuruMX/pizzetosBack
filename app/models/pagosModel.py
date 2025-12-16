@@ -8,3 +8,9 @@ class Pago(SQLModel, table=True):
     id_venta:int
     id_metpago: int
     monto: Decimal
+    referencia: Optional[str] = None
+
+class MetodosPago(SQLModel, table=True):
+    __tablename__="MetodosPago"
+    id_metpago: Optional[int] = Field(default=None, primary_key=True)
+    metodo: str

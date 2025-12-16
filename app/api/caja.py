@@ -6,7 +6,8 @@ from datetime import datetime
 from app.db.session import get_session
 from app.models.cajaModel import Caja
 from app.models.ventaModel import Venta
-from app.models.pagosModel import Pago
+from app.models.pagosModel import (Pago,
+                                   MetodosPago)
 
 from app.models.empleadoModel import Empleados
 
@@ -56,6 +57,7 @@ async def cerrar_caja(
     session.add(caja)
     session.commit()
     return {"message": "Caja cerrada exitosamente"}
+
 
 
 @router.get("/detalles/{id_caja}", response_model=CajaDetalleResponse)
@@ -133,3 +135,33 @@ async def obtener_detalle_caja(id_caja: int, session: Session = Depends(get_sess
     )
 
     return respuesta
+
+
+
+@router.get("/ventas/{id_caja}")
+async def obtener_ventas_caja(id_caja: int, session: Session = Depends(get_session)):
+    result = session.exec(
+        select(
+            Pago.id_venta,
+            MetodosPago.metodo.label("Metodo"),
+            Pago.monto,
+            Pago.referencia
+        )
+        .join(Venta, Pago.id_venta == Venta.id_venta)
+        .join(MetodosPago, Pago.id_metpago == MetodosPago.id_metpago)
+        .where(Venta.id_caja == id_caja)
+        .order_by(Pago.id_venta)
+    )
+    rows = result.all()
+
+    ventas = []
+    for r in rows:
+        d = dict(r._mapping)
+        monto = d.get("monto")
+        if isinstance(monto, Decimal):
+            d["monto"] = float(monto)
+        ventas.append(d)
+
+    return ventas
+
+
