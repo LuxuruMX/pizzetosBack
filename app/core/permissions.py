@@ -8,10 +8,8 @@ from app.core.dependency import verify_token, TokenData
 
 
 def get_user_permissions(id_emp: int, session: Session) -> dict:
-    """
-    Obtiene los permisos del empleado desde la tabla Permisos.
-    """
-    # Buscar empleado
+
+
     empleado = session.get(Empleados, id_emp)
     if not empleado:
         return {}

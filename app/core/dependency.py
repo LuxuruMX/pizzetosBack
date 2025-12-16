@@ -5,8 +5,13 @@ from jwt import InvalidTokenError
 from pydantic import BaseModel
 from typing import Optional
 
-SECRET_KEY = "qscesz"
-ALGORITHM = "HS256"
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
