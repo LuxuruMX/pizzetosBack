@@ -247,3 +247,22 @@ async def get_price_pizzas(
 
 
 
+@router.get("/descripciones", response_model=List[dict])
+async def get_descriptions(
+    session: Session = Depends(get_session)
+):
+    # Ejecutar ambas consultas
+    statement = select(especialidad.nombre, especialidad.descripcion).order_by(especialidad.id_esp)
+    result = session.exec(statement).all()
+
+    statement2 = select(mariscos.nombre, mariscos.descripcion).order_by(mariscos.id_maris)
+    result2 = session.exec(statement2).all()
+
+    # Combinar ambos resultados en una sola lista
+    combined_results = [
+        {"nombre": r.nombre, "descripcion": r.descripcion} for r in result
+    ] + [
+        {"nombre": r.nombre, "descripcion": r.descripcion} for r in result2
+    ]
+
+    return combined_results
