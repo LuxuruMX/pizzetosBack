@@ -9,6 +9,17 @@ from app.schemas.detallesSchema import ItemVentaRequest
 class PagoVentaRequest(BaseModel):
     id_metpago: int
     monto: Decimal
+    referencia: Optional[str] = None
+    
+    @model_validator(mode='after')
+    def validar_referencia(self):
+        # Validar que la referencia sea obligatoria para métodos de pago 1 o 3
+        if self.id_metpago in [1, 3]:
+            if not self.referencia or self.referencia.strip() == "":
+                raise ValueError(
+                    f'Debe proporcionar una referencia cuando el método de pago es {self.id_metpago}'
+                )
+        return self
 
 class createVenta(BaseModel):
     id_suc: int

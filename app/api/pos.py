@@ -19,7 +19,7 @@ from app.models.sucursalModel import Sucursal
 router = APIRouter()
 
 
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from datetime import datetime, timedelta
@@ -981,13 +981,20 @@ async def crear_venta(
                 nuevo_pago = Pago(
                     id_venta=nueva_venta.id_venta,
                     id_metpago=pago_request.id_metpago,
-                    monto=Decimal(str(pago_request.monto))
+                    monto=Decimal(str(pago_request.monto)),
+                    referencia=pago_request.referencia  # Guardar la referencia
                 )
                 session.add(nuevo_pago)
-                pagos_creados.append({
+                
+                pago_info = {
                     "id_metpago": pago_request.id_metpago,
                     "monto": float(pago_request.monto)
-                })
+                }
+                # Incluir referencia en la respuesta si existe
+                if pago_request.referencia:
+                    pago_info["referencia"] = pago_request.referencia
+                
+                pagos_creados.append(pago_info)
 
         # Crear los detalles de la venta
         for item in venta_request.items:
@@ -1102,13 +1109,20 @@ async def registrar_pago_venta(
             nuevo_pago = Pago(
                 id_venta=pago_request.id_venta,
                 id_metpago=pago_data.id_metpago,
-                monto=Decimal(str(pago_data.monto))
+                monto=Decimal(str(pago_data.monto)),
+                referencia=pago_data.referencia  # Guardar la referencia
             )
             session.add(nuevo_pago)
-            pagos_creados.append({
+            
+            pago_info = {
                 "id_metpago": pago_data.id_metpago,
                 "monto": float(pago_data.monto)
-            })
+            }
+            # Incluir referencia en la respuesta si existe
+            if pago_data.referencia:
+                pago_info["referencia"] = pago_data.referencia
+            
+            pagos_creados.append(pago_info)
         
         session.commit()
         
