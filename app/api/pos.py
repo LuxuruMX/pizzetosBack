@@ -1062,6 +1062,7 @@ async def crear_venta(
 
 
 
+
 @router.post("/pagar")
 async def registrar_pago_venta(
     pago_request: RegistrarPagoRequest,
@@ -1124,6 +1125,8 @@ async def registrar_pago_venta(
             
             pagos_creados.append(pago_info)
         
+        # Hacer flush para detectar errores antes del commit
+        session.flush()
         session.commit()
         
         return {
@@ -1137,9 +1140,19 @@ async def registrar_pago_venta(
         }
         
     except HTTPException:
+        session.rollback()
         raise
+    except ValueError as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=422,
+            detail=str(e)
+        )
     except Exception as e:
         session.rollback()
+        import traceback
+        error_detail = f"Error al registrar el pago: {str(e)}\n{traceback.format_exc()}"
+        print(error_detail)  # Para ver el error completo en los logs
         raise HTTPException(
             status_code=500, 
             detail=f"Error al registrar el pago: {str(e)}"

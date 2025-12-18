@@ -13,9 +13,13 @@ class PagoVentaRequest(BaseModel):
     
     @model_validator(mode='after')
     def validar_referencia(self):
+        # Convertir cadenas vacías a None
+        if self.referencia is not None and self.referencia.strip() == "":
+            self.referencia = None
+        
         # Validar que la referencia sea obligatoria para métodos de pago 1 o 3
         if self.id_metpago in [1, 3]:
-            if not self.referencia or self.referencia.strip() == "":
+            if not self.referencia:
                 raise ValueError(
                     f'Debe proporcionar una referencia cuando el método de pago es {self.id_metpago}'
                 )
