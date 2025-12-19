@@ -30,7 +30,8 @@ from app.models import (empleadoModel,
                         pizzasModel,
                         DireccionesModel,
                         pDireccionModel,
-                        cajaModel)
+                        cajaModel,
+                        pEspecialModel)
 
 
 DB_USER = os.getenv("DB_USER")
