@@ -38,7 +38,7 @@ async def ver_pedidos_especiales(
         for pedido in pedidos_especiales:
             # Obtener información del cliente
             cliente = session.get(Cliente, pedido.id_clie)
-            nombre_cliente = cliente.nombre if cliente else "Desconocido"
+            nombre_cliente = cliente.nombre + " " + cliente.apellido if cliente else "Desconocido"
 
             # Obtener información de la dirección
             direccion = session.get(Direccion, pedido.id_dir)
@@ -1661,5 +1661,54 @@ async def completar_pedido(
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al completar pedido: {str(e)}")
 
+
+@router.patch("/completar-pespecial/{id_pespeciales}")
+async def completar_pedido_y_pespecial_por_id(
+    id_pespeciales: int,
+    session: Session = Depends(get_session)
+):
+    """Completa la venta asociada al `PEspecial` y marca el `PEspecial` con status=2."""
+    pedido_especial = session.get(PEspecial, id_pespeciales)
+    if not pedido_especial:
+        raise HTTPException(status_code=404, detail=f"PEspecial {id_pespeciales} no encontrado")
+
+    id_venta = pedido_especial.id_venta
+    venta = session.get(Venta, id_venta)
+    if not venta:
+        raise HTTPException(status_code=404, detail=f"Venta asociada {id_venta} no encontrada")
+
+    try:
+        # Cambiar el estado de la venta
+        venta.status = 2
+        session.add(venta)
+
+        # Cambiar el estado de todos los detalles de venta asociados
+        stmt = (
+            update(DetalleVenta)
+            .where(DetalleVenta.id_venta == id_venta)
+            .values(status=2)
+        )
+        session.exec(stmt)
+
+        # Marcar el PEspecial como completado (status=2)
+        pedido_especial.status = 2
+        session.add(pedido_especial)
+
+        session.commit()
+        session.refresh(venta)
+
+        return {
+            "message": "Pedido completado y PEspecial actualizado exitosamente",
+            "id_pespeciales": id_pespeciales,
+            "id_venta": venta.id_venta,
+            "nuevo_status": 2,
+            "status_texto": "Completado"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al completar pedido y actualizar PEspecial: {str(e)}")
 
 
