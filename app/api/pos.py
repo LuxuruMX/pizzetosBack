@@ -26,6 +26,8 @@ from sqlmodel import Session, select
 from datetime import datetime, timedelta
 
 
+
+
 @router.get("/ver-pedidos-especiales")
 async def ver_pedidos_especiales(
     session: Session = Depends(get_session),
@@ -212,6 +214,7 @@ async def listar_pedidos_resumen(
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
 
 
+
 @router.get("/pedidos-cocina")
 async def listar_pedidos_cocina(
     session: Session = Depends(get_session),
@@ -244,24 +247,36 @@ async def listar_pedidos_cocina(
         for venta in ventas:
             # Obtener cliente según el tipo de servicio
             nombre_cliente = None
-            
+
             if venta.tipo_servicio == 0:
                 mesa_num = venta.mesa if venta.mesa else "S/N"
                 nombre_base = venta.nombreClie if venta.nombreClie else "Sin nombre"
                 nombre_cliente = f"Mesa {mesa_num} - {nombre_base}"
-                    
+
             elif venta.tipo_servicio == 1:
                 nombre_cliente = venta.nombreClie if venta.nombreClie else "Para llevar"
-                    
+
             elif venta.tipo_servicio == 2:
                 statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
                 domicilio = session.exec(statement_domicilio).first()
-                
+
                 if domicilio and domicilio.id_clie:
                     cliente = session.get(Cliente, domicilio.id_clie)
                     nombre_cliente = cliente.nombre if cliente else "Cliente sin nombre"
                 else:
                     nombre_cliente = venta.nombreClie if venta.nombreClie else "Domicilio sin cliente"
+
+            elif venta.tipo_servicio == 3:
+                statement_pespecial = select(PEspecial).where(PEspecial.id_venta == venta.id_venta)
+                pes = session.exec(statement_pespecial).first()
+                if not pes:
+                    continue
+                # Si no es día de entrega, omitir
+                if not pes.fecha_entrega or pes.fecha_entrega.date() != datetime.now().date():
+                    continue
+
+                cliente = session.get(Cliente, pes.id_clie) if pes.id_clie else None
+                nombre_cliente = f"{cliente.nombre} {cliente.apellido} - Especial" if cliente else "Sin nombre - Especial"
 
             # Valor por defecto si algo falló
             if not nombre_cliente:
@@ -731,16 +746,20 @@ async def obtener_detalle_pedido_cocina(
 
             if det.id_pizza and det.id_paquete != 2:
                 from app.models.pizzasModel import pizzas
+                from app.models.tamanosPizzasModel import tamanosPizzas
                 producto = session.get(pizzas, det.id_pizza)
                 if producto:
                     try:
                         from app.models.especialidadModel import especialidad
                         especialidad_obj = session.get(especialidad, producto.id_esp)
+                        tamano_obj = session.get(tamanosPizzas, producto.id_tamano)
                         nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
+                        tamanoP = tamano_obj.tamano if tamano_obj else f"Tamaño #{producto.id_tamano}"
                     except:
                         nombre_especialidad = f"Especialidad #{producto.id_esp}"
+                        tamanoP = f"Tamaño #{producto.id_tamano}"
 
-                    producto_info["nombre"] = nombre_especialidad
+                    producto_info["nombre"] = f"{nombre_especialidad} - {tamanoP}"
                     producto_info["tipo"] = "Pizza"
                 productos.append(producto_info)
                 
@@ -959,6 +978,7 @@ async def obtener_detalle_pedido_cocina(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener detalle del pedido: {str(e)}")
+
 
 
 @router.post("/")
