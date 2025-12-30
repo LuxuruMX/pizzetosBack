@@ -146,28 +146,26 @@ async def listar_pedidos_resumen(
 
             # Obtener cliente según el tipo de servicio
             nombre_cliente = None
-            
+            detalle_direccion = None
             if venta.tipo_servicio == 0:  # Comer aquí
                 # Mostrar Mesa X - Nombre del cliente
                 mesa_num = venta.mesa if venta.mesa else "S/N"
                 nombre_base = venta.nombreClie if venta.nombreClie else "Sin nombre"
                 nombre_cliente = f"Mesa {mesa_num} - {nombre_base}"
-                    
             elif venta.tipo_servicio == 1:  # Para llevar
                 # Solo mostrar el nombre del cliente
                 nombre_cliente = venta.nombreClie if venta.nombreClie else "Para llevar"
-                    
             elif venta.tipo_servicio == 2:  # Domicilio
-                # Se queda como está (buscar en pDireccion)
+                # Buscar en pDireccion
                 statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
                 domicilio = session.exec(statement_domicilio).first()
-                
                 if domicilio and domicilio.id_clie:
                     cliente = session.get(Cliente, domicilio.id_clie)
                     nombre_cliente = cliente.nombre if cliente else "Cliente sin nombre"
+                    detalle_direccion = domicilio.detalles if hasattr(domicilio, 'detalles') else None
                 else:
                     nombre_cliente = venta.nombreClie if venta.nombreClie else "Domicilio sin cliente"
-
+                    detalle_direccion = None
             # Valor por defecto si algo falló
             if not nombre_cliente:
                 nombre_cliente = "Sin información"
@@ -179,7 +177,7 @@ async def listar_pedidos_resumen(
             detalles = session.exec(statement_detalles).all()
             total_items = sum(det.cantidad for det in detalles)
 
-            pedidos_resumen.append({
+            pedido_dict = {
                 "id_venta": venta.id_venta,
                 "fecha_hora": venta.fecha_hora,
                 "cliente": nombre_cliente,
@@ -200,7 +198,11 @@ async def listar_pedidos_resumen(
                 "total": float(venta.total),
                 "cantidad_items": total_items,
                 "pagado": pagado  # Nuevo campo
-            })
+            }
+            # Agregar detalle si es domicilio y existe
+            if venta.tipo_servicio == 2:
+                pedido_dict["detalle"] = detalle_direccion
+            pedidos_resumen.append(pedido_dict)
 
         return {
             "pedidos": pedidos_resumen,
@@ -1024,6 +1026,41 @@ async def crear_venta(
                 status_code=404,
                 detail=f"Dirección con ID {venta_request.id_direccion} no encontrada"
             )
+
+        # Validaciones y lógica especial para domicilio (tipo_servicio == 2)
+        detalles_domicilio = None
+        if venta_request.tipo_servicio == 2:
+            if not venta_request.pagos or len(venta_request.pagos) == 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Debe especificar el método de pago para domicilio (transferencia, tarjeta o efectivo) en el campo 'pagos' (para efectivo/tarjeta, solo el primer elemento es relevante)"
+                )
+            pago = venta_request.pagos[0]
+            # Transferencia: id_metpago == 1 (ajustar según tu catálogo)
+            if pago.id_metpago == 1:
+                # Debe traer referencia y el monto debe ser igual al total
+                if not pago.referencia:
+                    raise HTTPException(status_code=400, detail="Debe proporcionar la referencia de la transferencia")
+                if abs(pago.monto - venta_request.total) > Decimal('0.01'):
+                    raise HTTPException(status_code=400, detail="El monto de la transferencia debe ser igual al total de la venta")
+                detalles_domicilio = "Pago realizado por transferencia"
+
+            elif pago.id_metpago == 2:
+                detalles_domicilio = "Llevar terminal"
+            elif pago.id_metpago == 3:
+                # Debe traer con cuánto paga (en referencia)
+                if not pago.referencia:
+                    raise HTTPException(status_code=400, detail="Debe especificar con cuánto pagará el cliente en el campo 'referencia'")
+                try:
+                    cantidad_entregada = Decimal(pago.referencia)
+                except Exception:
+                    raise HTTPException(status_code=400, detail="El campo 'referencia' debe ser un número válido para efectivo")
+                if cantidad_entregada < venta_request.total:
+                    raise HTTPException(status_code=400, detail="La cantidad entregada debe ser mayor o igual al total de la venta")
+                detalles_domicilio = f"Llevar cambio de '{pago.referencia}'"
+                # No se registra pago en tabla Pago
+            else:
+                raise HTTPException(status_code=400, detail="Método de pago no soportado para domicilio")
         if venta_request.tipo_servicio == 3:
             if not venta_request.fecha_entrega:
                 raise HTTPException(
@@ -1063,14 +1100,27 @@ async def crear_venta(
         session.add(nueva_venta)
         session.flush()
 
+
         # Crear registro en pDireccion (solo domicilio) o PEspecial (solo pedido especial)
         if venta_request.tipo_servicio == 2: # Domicilio
             nuevo_domicilio = pDireccion(
                 id_clie=venta_request.id_cliente,
                 id_dir=venta_request.id_direccion,
-                id_venta=nueva_venta.id_venta
+                id_venta=nueva_venta.id_venta,
+                detalles=detalles_domicilio
             )
             session.add(nuevo_domicilio)
+
+            # Registrar pago solo si es transferencia
+            if venta_request.pagos and venta_request.pagos[0].id_metpago == 1:
+                pago = venta_request.pagos[0]
+                nuevo_pago = Pago(
+                    id_venta=nueva_venta.id_venta,
+                    id_metpago=pago.id_metpago,
+                    monto=Decimal(str(pago.monto)),
+                    referencia=pago.referencia
+                )
+                session.add(nuevo_pago)
 
         elif venta_request.tipo_servicio == 3: # Pedido Especial
             nuevo_pedido_especial = PEspecial(
