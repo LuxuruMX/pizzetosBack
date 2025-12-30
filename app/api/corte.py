@@ -1,3 +1,10 @@
+from app.models.empleadoModel import Empleados
+
+from collections import defaultdict
+
+from app.models.sucursalModel import Sucursal
+from app.models.cajaModel import Caja
+
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select, func
 from typing import List, Optional
@@ -11,25 +18,57 @@ from app.core.permissions import require_any_permission
 
 router = APIRouter()
 
+class EventoCaja(BaseModel):
+    tipo: str
+    fecha: datetime
+    observaciones: Optional[str]
 
+class TransaccionDetalle(BaseModel):
+    id_venta: int
+    fecha: datetime
+    id_metpago: int
+    referencia: Optional[str]
+    monto: Decimal
+    sucursal: Optional[str] = None
+    eventos_caja: Optional[List[EventoCaja]] = None
+    notas: Optional[str] = None
 class ResumenDia(BaseModel):
     dia: int
     efectivo: Decimal
     tarjeta: Decimal
     transferencia: Decimal
 
+class CajaDiaDetalle(BaseModel):
+    id_caja: int
+    empleado: str
+    hora_apertura: datetime
+    hora_cierre: Optional[datetime]
+    observaciones_apertura: Optional[str]
+    observaciones_cierre: Optional[str]
 
-@router.get("/resumen-mes", tags=["Corte"], response_model=List[ResumenDia])
+class PagoVentaDetalle(BaseModel):
+    id_venta: int
+    dia: int
+    metodo_pago: str
+    referencia: Optional[str]
+    monto: Decimal
+    id_caja: int
+
+class SucursalDiaDetalle(BaseModel):
+    sucursal: str
+    cajas: List[CajaDiaDetalle]
+    pagos: List[PagoVentaDetalle]
+
+
+
+@router.get("/resumen-mes", response_model=List[ResumenDia])
 async def get_resumen_mes(
     mes: Optional[int] = Query(None),
     anio: Optional[int] = Query(None),
     id_suc: Optional[int] = Query(None),
     session: Session = Depends(get_session)
 ):
-    """
-    Obtiene el resumen de ventas por día, desglosadas por método de pago.
-    Si no se especifica mes y año, usa el mes actual.
-    """
+
     # Si no se especifica mes y año, usar el mes actual
     hoy = datetime.now()
     if mes is None:
@@ -83,3 +122,70 @@ async def get_resumen_mes(
     
     return respuesta
 
+
+@router.get("/reporte-dia", response_model=List[SucursalDiaDetalle])
+async def get_reporte_dia(
+    fecha: datetime = Query(..., description="Fecha del día a consultar (YYYY-MM-DD)"),
+    session: Session = Depends(get_session)
+):
+    # Limitar a ese día
+    inicio = fecha.replace(hour=0, minute=0, second=0, microsecond=0)
+    fin = inicio + timedelta(days=1)
+
+    # Buscar todas las sucursales
+    sucursales = session.exec(select(Sucursal)).all()
+    suc_map = {suc.id_suc: suc.nombre for suc in sucursales}
+
+    # Buscar cajas abiertas ese día
+    cajas_stmt = select(Caja).where(Caja.fecha_apertura >= inicio, Caja.fecha_apertura < fin)
+    cajas = session.exec(cajas_stmt).all()
+
+    # Buscar empleados de las cajas
+    empleados_ids = {caja.id_emp for caja in cajas}
+    empleados = session.exec(select(Empleados).where(Empleados.id_emp.in_(empleados_ids))).all() if empleados_ids else []
+    emp_map = {emp.id_emp: emp.nombre for emp in empleados}
+
+    # Agrupar cajas por sucursal
+    cajas_por_suc = defaultdict(list)
+    for caja in cajas:
+        cajas_por_suc[caja.id_suc].append(CajaDiaDetalle(
+            id_caja=caja.id_caja,
+            empleado=emp_map.get(caja.id_emp, "Desconocido"),
+            hora_apertura=caja.fecha_apertura,
+            hora_cierre=caja.fecha_cierre,
+            observaciones_apertura=caja.observaciones_apertura,
+            observaciones_cierre=caja.observaciones_cierre
+        ))
+
+    # Buscar pagos/ventas de ese día
+    pagos_stmt = select(Pago, Venta, MetodosPago).join(
+        Venta, Pago.id_venta == Venta.id_venta
+    ).join(
+        MetodosPago, Pago.id_metpago == MetodosPago.id_metpago
+    ).where(
+        Venta.fecha_hora >= inicio,
+        Venta.fecha_hora < fin
+    )
+    pagos = session.exec(pagos_stmt).all()
+
+    pagos_por_suc = defaultdict(list)
+    for pago, venta, metpago in pagos:
+        pagos_por_suc[venta.id_suc].append(PagoVentaDetalle(
+            id_venta=venta.id_venta,
+            dia=venta.fecha_hora.day,
+            metodo_pago=metpago.metodo,
+            referencia=pago.referencia,
+            monto=pago.monto,
+            id_caja=venta.id_caja
+        ))
+
+    # Construir respuesta agrupada por sucursal
+    respuesta = []
+    for id_suc, nombre in suc_map.items():
+        respuesta.append(SucursalDiaDetalle(
+            sucursal=nombre,
+            cajas=cajas_por_suc.get(id_suc, []),
+            pagos=pagos_por_suc.get(id_suc, [])
+        ))
+
+    return respuesta
