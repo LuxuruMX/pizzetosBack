@@ -1,7 +1,6 @@
-from app.models.empleadoModel import Empleados
-
 from collections import defaultdict
 
+from app.models.empleadoModel import Empleados
 from app.models.sucursalModel import Sucursal
 from app.models.cajaModel import Caja
 
@@ -10,54 +9,19 @@ from sqlmodel import Session, select, func
 from typing import List, Optional
 from datetime import datetime, timedelta
 from decimal import Decimal
-from pydantic import BaseModel
 from app.db.session import get_session
 from app.models.ventaModel import Venta
 from app.models.pagosModel import Pago, MetodosPago
 from app.core.permissions import require_any_permission
 
+from app.schemas.corteSchema import (ResumenDia,
+                                     SucursalDiaDetalle,
+                                     CajaDiaDetalle,
+                                     PagoVentaDetalle)
+
 router = APIRouter()
 
-class EventoCaja(BaseModel):
-    tipo: str
-    fecha: datetime
-    observaciones: Optional[str]
 
-class TransaccionDetalle(BaseModel):
-    id_venta: int
-    fecha: datetime
-    id_metpago: int
-    referencia: Optional[str]
-    monto: Decimal
-    sucursal: Optional[str] = None
-    eventos_caja: Optional[List[EventoCaja]] = None
-    notas: Optional[str] = None
-class ResumenDia(BaseModel):
-    dia: int
-    efectivo: Decimal
-    tarjeta: Decimal
-    transferencia: Decimal
-
-class CajaDiaDetalle(BaseModel):
-    id_caja: int
-    empleado: str
-    hora_apertura: datetime
-    hora_cierre: Optional[datetime]
-    observaciones_apertura: Optional[str]
-    observaciones_cierre: Optional[str]
-
-class PagoVentaDetalle(BaseModel):
-    id_venta: int
-    dia: int
-    metodo_pago: str
-    referencia: Optional[str]
-    monto: Decimal
-    id_caja: int
-
-class SucursalDiaDetalle(BaseModel):
-    sucursal: str
-    cajas: List[CajaDiaDetalle]
-    pagos: List[PagoVentaDetalle]
 
 
 
