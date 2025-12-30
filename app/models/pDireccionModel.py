@@ -11,3 +11,4 @@ class pDireccion(SQLModel, table=True):
     id_dir: int = Field(foreign_key="Direcciones.id_dir")
     id_venta: int = Field(foreign_key="Venta.id_venta")
     status: Optional[int] = Field(default=1)
+    detalles: Optional[str] = Field(default=None)
