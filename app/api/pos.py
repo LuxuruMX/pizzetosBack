@@ -146,28 +146,26 @@ async def listar_pedidos_resumen(
 
             # Obtener cliente según el tipo de servicio
             nombre_cliente = None
-            
+            detalle_direccion = None
             if venta.tipo_servicio == 0:  # Comer aquí
                 # Mostrar Mesa X - Nombre del cliente
                 mesa_num = venta.mesa if venta.mesa else "S/N"
                 nombre_base = venta.nombreClie if venta.nombreClie else "Sin nombre"
                 nombre_cliente = f"Mesa {mesa_num} - {nombre_base}"
-                    
             elif venta.tipo_servicio == 1:  # Para llevar
                 # Solo mostrar el nombre del cliente
                 nombre_cliente = venta.nombreClie if venta.nombreClie else "Para llevar"
-                    
             elif venta.tipo_servicio == 2:  # Domicilio
-                # Se queda como está (buscar en pDireccion)
+                # Buscar en pDireccion
                 statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
                 domicilio = session.exec(statement_domicilio).first()
-                
                 if domicilio and domicilio.id_clie:
                     cliente = session.get(Cliente, domicilio.id_clie)
                     nombre_cliente = cliente.nombre if cliente else "Cliente sin nombre"
+                    detalle_direccion = domicilio.detalles if hasattr(domicilio, 'detalles') else None
                 else:
                     nombre_cliente = venta.nombreClie if venta.nombreClie else "Domicilio sin cliente"
-
+                    detalle_direccion = None
             # Valor por defecto si algo falló
             if not nombre_cliente:
                 nombre_cliente = "Sin información"
@@ -179,7 +177,7 @@ async def listar_pedidos_resumen(
             detalles = session.exec(statement_detalles).all()
             total_items = sum(det.cantidad for det in detalles)
 
-            pedidos_resumen.append({
+            pedido_dict = {
                 "id_venta": venta.id_venta,
                 "fecha_hora": venta.fecha_hora,
                 "cliente": nombre_cliente,
@@ -200,7 +198,11 @@ async def listar_pedidos_resumen(
                 "total": float(venta.total),
                 "cantidad_items": total_items,
                 "pagado": pagado  # Nuevo campo
-            })
+            }
+            # Agregar detalle si es domicilio y existe
+            if venta.tipo_servicio == 2:
+                pedido_dict["detalle"] = detalle_direccion
+            pedidos_resumen.append(pedido_dict)
 
         return {
             "pedidos": pedidos_resumen,
