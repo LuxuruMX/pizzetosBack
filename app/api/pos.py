@@ -146,7 +146,6 @@ async def listar_pedidos_resumen(
 
             # Obtener cliente según el tipo de servicio
             nombre_cliente = None
-            detalle_direccion = None
             if venta.tipo_servicio == 0:  # Comer aquí
                 # Mostrar Mesa X - Nombre del cliente
                 mesa_num = venta.mesa if venta.mesa else "S/N"
@@ -162,10 +161,8 @@ async def listar_pedidos_resumen(
                 if domicilio and domicilio.id_clie:
                     cliente = session.get(Cliente, domicilio.id_clie)
                     nombre_cliente = cliente.nombre if cliente else "Cliente sin nombre"
-                    detalle_direccion = domicilio.detalles if hasattr(domicilio, 'detalles') else None
                 else:
                     nombre_cliente = venta.nombreClie if venta.nombreClie else "Domicilio sin cliente"
-                    detalle_direccion = None
             # Valor por defecto si algo falló
             if not nombre_cliente:
                 nombre_cliente = "Sin información"
@@ -199,9 +196,9 @@ async def listar_pedidos_resumen(
                 "cantidad_items": total_items,
                 "pagado": pagado  # Nuevo campo
             }
-            # Agregar detalle si es domicilio y existe
-            if venta.tipo_servicio == 2:
-                pedido_dict["detalle"] = detalle_direccion
+            # Agregar detalle si es domicilio y existe en Venta.detalles
+            if venta.tipo_servicio == 2 and venta.detalles:
+                pedido_dict["detalle"] = venta.detalles
             pedidos_resumen.append(pedido_dict)
 
         return {
@@ -1095,7 +1092,8 @@ async def crear_venta(
             tipo_servicio=venta_request.tipo_servicio,
             status=venta_request.status,
             nombreClie=venta_request.nombreClie,
-            id_caja=venta_request.id_caja
+            id_caja=venta_request.id_caja,
+            detalles=detalles_domicilio if venta_request.tipo_servicio == 2 else None  # Aquí se escriben los detalles del domicilio
         )
         session.add(nueva_venta)
         session.flush()
@@ -1107,7 +1105,7 @@ async def crear_venta(
                 id_clie=venta_request.id_cliente,
                 id_dir=venta_request.id_direccion,
                 id_venta=nueva_venta.id_venta,
-                detalles=detalles_domicilio
+                detalles=None  # Ya no se escribe aquí, se escribe en Venta.detalles
             )
             session.add(nuevo_domicilio)
 
@@ -1208,6 +1206,7 @@ async def crear_venta(
         elif venta_request.tipo_servicio == 2:
             respuesta["id_cliente"] = venta_request.id_cliente
             respuesta["id_direccion"] = venta_request.id_direccion
+            respuesta["detalles_pago"] = detalles_domicilio  # Incluir en respuesta
         elif venta_request.tipo_servicio == 3: # Nuevo bloque para Pedido Especial
             respuesta["id_cliente"] = venta_request.id_cliente
             respuesta["id_direccion"] = venta_request.id_direccion
@@ -1798,5 +1797,10 @@ async def completar_pedido_y_pespecial_por_id(
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al completar pedido y actualizar PEspecial: {str(e)}")
+
+
+
+
+
 
 
