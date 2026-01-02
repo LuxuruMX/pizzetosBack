@@ -703,6 +703,9 @@ async def obtener_detalle_pedido_cocina(
 
         # Obtener cliente según el tipo de servicio (misma lógica que en el listado)
         nombre_cliente = None
+        id_direccion = None
+        fecha_entrega = None
+        
         if venta.tipo_servicio == 2:  # Domicilio
             # Buscar en pDireccion
             statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
@@ -711,6 +714,18 @@ async def obtener_detalle_pedido_cocina(
             if domicilio:
                 cliente = session.get(Cliente, domicilio.id_clie)
                 nombre_cliente = cliente.nombre if cliente else "Desconocido"
+                id_direccion = domicilio.id_dir
+        
+        elif venta.tipo_servicio == 3:  # Pedido Especial
+            # Buscar en PEspecial
+            statement_pespecial = select(PEspecial).where(PEspecial.id_venta == venta.id_venta)
+            pedido_especial = session.exec(statement_pespecial).first()
+            
+            if pedido_especial:
+                cliente = session.get(Cliente, pedido_especial.id_clie)
+                nombre_cliente = f"{cliente.nombre} {cliente.apellido}" if cliente else "Desconocido"
+                id_direccion = pedido_especial.id_dir
+                fecha_entrega = pedido_especial.fecha_entrega
         
         # Si no es domicilio o no se encontró cliente, usar valores por defecto según tipo
         if not nombre_cliente:
@@ -947,7 +962,14 @@ async def obtener_detalle_pedido_cocina(
         tiempo_transcurrido = datetime.now() - venta.fecha_hora
         minutos_transcurridos = int(tiempo_transcurrido.total_seconds() / 60)
 
-        return {
+        # Obtener información de dirección si existe
+        detalle_direccion = None
+        if id_direccion:
+            direccion = session.get(Direccion, id_direccion)
+            if direccion:
+                detalle_direccion = f"{direccion.calle} {direccion.manzana}, {direccion.lote}, {direccion.colonia}, {direccion.referencia}"
+
+        response = {
             "id_venta": venta.id_venta,
             "fecha_hora": venta.fecha_hora,
             "tiempo_transcurrido_minutos": minutos_transcurridos,
@@ -956,7 +978,8 @@ async def obtener_detalle_pedido_cocina(
             "tipo_servicio_texto": {
                 0: "Comer aquí",
                 1: "Para llevar",
-                2: "Domicilio"
+                2: "Domicilio",
+                3: "Pedido Especial"
             }.get(venta.tipo_servicio, "Desconocido"),
             "mesa": venta.mesa if venta.tipo_servicio == 0 else None,
             "sucursal": nombre_sucursal,
@@ -971,6 +994,15 @@ async def obtener_detalle_pedido_cocina(
             "cantidad_productos_diferentes": len(detalles),
             "productos": productos
         }
+        
+        # Agregar información de dirección y fecha de entrega si es domicilio o pedido especial
+        if id_direccion:
+            response["direccion"] = detalle_direccion
+        
+        if fecha_entrega:
+            response["fecha_entrega"] = fecha_entrega
+        
+        return response
 
     except HTTPException:
         raise
