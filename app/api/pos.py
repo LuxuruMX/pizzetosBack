@@ -190,15 +190,14 @@ async def listar_pedidos_resumen(
                 "status_texto": {
                     0: "Esperando",
                     1: "Preparando",
-                    2: "Completado"
+                    2: "Completado",
+                    5: "Cancelado"
                 }.get(venta.status, "Desconocido"),
                 "total": float(venta.total),
                 "cantidad_items": total_items,
-                "pagado": pagado  # Nuevo campo
+                "pagado": pagado,
+                "detalle": venta.detalles
             }
-            # Agregar detalle si es domicilio y existe en Venta.detalles
-            if venta.tipo_servicio == 2 and venta.detalles:
-                pedido_dict["detalle"] = venta.detalles
             pedidos_resumen.append(pedido_dict)
 
         return {
@@ -1800,6 +1799,64 @@ async def completar_pedido_y_pespecial_por_id(
 
 
 
+@router.patch("/{id_venta}/cancelar")
+async def cancelar_venta(
+    id_venta: int,
+    motivo_cancelacion: str,
+    session: Session = Depends(get_session)
+):
+    venta = session.get(Venta, id_venta)
+    if not venta:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Venta {id_venta} no encontrada"
+        )
+
+    try:
+        # Cambiar status de Venta a 5 (cancelado)
+        venta.status = 5
+        venta.detalles = motivo_cancelacion
+        session.add(venta)
+
+        # Cambiar status de DetalleVenta a 0 (cancelados)
+        statement_detalles = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
+        detalles = session.exec(statement_detalles).all()
+        for detalle in detalles:
+            detalle.status = 0
+            session.add(detalle)
+
+        # Cambiar status de pDireccion a 0 (cancelados)
+        statement_pdireccion = select(pDireccion).where(pDireccion.id_venta == id_venta)
+        pdireccion = session.exec(statement_pdireccion).all()
+        for pd in pdireccion:
+            pd.status = 0
+            session.add(pd)
+
+        # Cambiar status de PEspecial a 0 (cancelados)
+        statement_pespecial = select(PEspecial).where(PEspecial.id_venta == id_venta)
+        pespecial = session.exec(statement_pespecial).all()
+        for pe in pespecial:
+            pe.status = 0
+            session.add(pe)
+
+        session.commit()
+
+        return {
+            "mensaje": "Venta cancelada exitosamente",
+            "id_venta": id_venta,
+            "status_venta": venta.status,
+            "detalles": venta.detalles,
+            "detalles_cancelados": len(detalles),
+            "domicilios_cancelados": len(pdireccion),
+            "especiales_cancelados": len(pespecial)
+        }
+
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al cancelar la venta: {str(e)}"
+        )
 
 
 
