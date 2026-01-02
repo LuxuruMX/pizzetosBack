@@ -7,6 +7,7 @@ class createGastos(BaseModel):
     id_suc: int
     descripcion: str = Field(min_length=3, max_length=255)
     precio: Decimal
+    id_caja: int
 
 
 class readGastos(BaseModel):

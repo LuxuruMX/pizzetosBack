@@ -19,6 +19,7 @@ ph = PasswordHasher()
 @router.get("/", response_model=List[readGastos])
 async def getGastos(
     session: Session = Depends(get_session),
+    id_suc: int = Query(..., description="ID de la sucursal. 1 para ver todas, 2, 3, etc para ver solo esa sucursal"),
     fecha_inicio: Optional[str] = Query(None, description="Fecha de inicio para filtrar (formato: YYYY-MM-DD o ISO 8601)"),
     fecha_fin: Optional[str] = Query(None, description="Fecha de fin para filtrar (formato: YYYY-MM-DD o ISO 8601)"),
     _: None = Depends(require_permission("ver_recurso"))
@@ -28,6 +29,10 @@ async def getGastos(
         .join(Sucursal, Gastos.id_suc == Sucursal.id_suc)
         .order_by(Gastos.id_gastos)
     )
+
+    # Filtrar por sucursal: si id_suc == 1 -> todas las sucursales, si !=1 -> solo esa sucursal
+    if id_suc != 1:
+        statement = statement.where(Gastos.id_suc == id_suc)
 
     # Parsear fechas si se proporcionan
     dt_inicio = None
@@ -63,7 +68,12 @@ async def getGastos(
 
 @router.post("/")
 async def create_gasto(gasto: createGastos, session: Session = Depends(get_session), _: None = Depends(require_permission("crear_recurso"))):
-    new_gasto = Gastos(**gasto.model_dump())
+    new_gasto = Gastos(
+        id_suc=gasto.id_suc,
+        descripcion=gasto.descripcion,
+        precio=gasto.precio,
+        id_caja=gasto.id_caja
+    )
     session.add(new_gasto)
     session.commit()
     session.refresh(new_gasto)

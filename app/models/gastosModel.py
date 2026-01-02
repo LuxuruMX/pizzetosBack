@@ -12,3 +12,4 @@ class Gastos(SQLModel, table=True):
     precio: Decimal
     fecha: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     evaluado: Optional[bool] = Field(default=False)
+    id_caja: int
