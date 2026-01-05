@@ -16,6 +16,24 @@ router = APIRouter()
 ph = PasswordHasher()
 
 
+@router.get("/{id_caja}/caja", response_model=List[readGastos])
+async def getGastosPorCaja(
+    id_caja: int,
+    session: Session = Depends(get_session),
+    _: None = Depends(require_permission("ver_recurso"))
+):
+    statement = (
+        select(Gastos.id_gastos, Gastos.id_suc, Gastos.descripcion, Gastos.precio, Gastos.fecha, Sucursal.nombre.label("sucursal"), Gastos.evaluado)
+        .join(Sucursal, Gastos.id_suc == Sucursal.id_suc)
+        .where(Gastos.id_caja == id_caja)
+        .order_by(Gastos.id_gastos)
+    )
+    
+    results = session.exec(statement).all()
+    return results
+
+
+
 @router.get("/", response_model=List[readGastos])
 async def getGastos(
     session: Session = Depends(get_session),
@@ -123,3 +141,5 @@ async def updateGasto(id_gastos: int, gasto: createGastos, session: Session = De
         session.refresh(result)
         return {"message":"Gasto actualizado"}
     return {"message":"No se encontro el gasto"}
+
+
