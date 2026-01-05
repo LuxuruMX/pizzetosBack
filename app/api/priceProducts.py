@@ -264,3 +264,35 @@ async def get_descriptions(
     ]
 
     return combined_results
+
+@router.get("/ingredientes", response_model=List[dict])
+async def get_ingredientes(
+    session: Session = Depends(get_session)
+):
+    statement = select(especialidad.id_esp, especialidad.nombre).where(especialidad.tipo == 3).order_by(especialidad.id_esp)
+    result = session.exec(statement).all()
+
+    return [
+        {"id_esp": r.id_esp, "nombre": r.nombre} for r in result
+    ]
+
+
+@router.get("/tamanosPizzas", response_model=List[dict])
+async def get_tamanos_pizzas(
+    session: Session = Depends(get_session)
+):
+    statement = (
+        select(tamanosPizzas.id_tamañop, tamanosPizzas.tamano, tamanosPizzas.precio)
+        .where(tamanosPizzas.tamano.contains("Especial"))
+        .order_by(tamanosPizzas.id_tamañop)
+    )
+    result = session.exec(statement).all()
+
+    return [
+        {
+            "id_tamañop": r.id_tamañop,
+            "tamano": r.tamano.replace(" Especial", ""),
+            "precio": r.precio
+        }
+        for r in result
+    ]
