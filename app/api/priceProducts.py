@@ -34,6 +34,8 @@ from app.models.paquetesModel import paquete
 from app.models.magnoModel import magno
 from app.models.pizzasModel import pizzas
 
+from app.models.ventaModel import Ingredientes
+
 
 router = APIRouter()
 
@@ -269,11 +271,11 @@ async def get_descriptions(
 async def get_ingredientes(
     session: Session = Depends(get_session)
 ):
-    statement = select(especialidad.id_esp, especialidad.nombre).where(especialidad.tipo == 3).order_by(especialidad.id_esp)
+    statement = select(Ingredientes).order_by(Ingredientes.id_ingrediente)
     result = session.exec(statement).all()
 
     return [
-        {"id_esp": r.id_esp, "nombre": r.nombre} for r in result
+        {"id_ingrediente": r.id_ingrediente, "nombre": r.ingrediente} for r in result
     ]
 
 
