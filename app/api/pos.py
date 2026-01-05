@@ -1186,6 +1186,13 @@ async def crear_venta(
 
         # Crear los detalles de la venta
         for item in venta_request.items:
+            ingredientes_json = None
+            if item.ingredientes:
+                ingredientes_json = {
+                    "tamano": item.ingredientes.tamano,
+                    "ingredientes": item.ingredientes.ingredientes
+            }
+                
             nuevo_detalle = DetalleVenta(
                 id_venta=nueva_venta.id_venta,
                 cantidad=item.cantidad,
@@ -1202,7 +1209,8 @@ async def crear_venta(
                 id_paquete=item.id_paquete,
                 detalle_paquete=item.detalle_paquete,
                 id_magno=item.id_magno,
-                id_pizza=item.id_pizza
+                id_pizza=item.id_pizza,
+                ingredientes=ingredientes_json
             )
             session.add(nuevo_detalle)
 

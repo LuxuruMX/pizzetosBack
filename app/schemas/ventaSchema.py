@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, field_validator
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
@@ -7,6 +7,13 @@ from typing import List, Optional
 class Ingredientes(BaseModel):
     tamano: int
     ingredientes: List[int]
+    
+    @field_validator('ingredientes')
+    @classmethod
+    def validar_ingredientes_no_vacios(cls, v):
+        if not v or len(v) == 0:
+            raise ValueError('Debe seleccionar al menos un ingrediente')
+        return v
 
 
 class ItemVentaRequest(BaseModel):
@@ -98,6 +105,28 @@ class VentaRequest(BaseModel):
             for pago in self.pagos:
                 if pago.monto <= 0:
                     raise ValueError('Los montos de pago deben ser mayores a 0')
+        
+        # Validar items: cada item debe tener un producto O ingredientes personalizados
+        for idx, item in enumerate(self.items):
+            productos = [
+                item.id_hamb, item.id_cos, item.id_alis, item.id_spag,
+                item.id_papa, item.id_rec, item.id_barr, item.id_maris,
+                item.id_refresco, item.id_paquete, item.id_magno, item.id_pizza
+            ]
+            productos_definidos = sum(1 for p in productos if p is not None)
+            
+            # Si hay ingredientes personalizados, no debe haber otro producto definido
+            if item.ingredientes is not None:
+                if productos_definidos > 0:
+                    raise ValueError(
+                        f'Item {idx + 1}: No puede especificar un producto e ingredientes personalizados al mismo tiempo'
+                    )
+            else:
+                # Si no hay ingredientes, debe haber exactamente un producto
+                if productos_definidos != 1:
+                    raise ValueError(
+                        f'Item {idx + 1}: Debe especificar exactamente un producto o ingredientes personalizados'
+                    )
 
         return self
 
