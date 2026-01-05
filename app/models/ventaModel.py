@@ -1,9 +1,8 @@
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, Numeric
 from typing import Optional
 from datetime import datetime
 from decimal import Decimal
-
 
 
 class Venta(SQLModel, table=True):
@@ -20,3 +19,9 @@ class Venta(SQLModel, table=True):
     nombreClie: Optional[str] = Field(default=None)
     id_caja: int = Field(default=None, foreign_key="Caja.id_caja")
     detalles: Optional[str] = Field(default=None)
+
+
+class Ingredientes(SQLModel, table=True):
+    __tablename__ = "Ingredientes"
+    id_ingrediente: Optional[int] = Field(default=None, primary_key=True)
+    ingrediente: str = Field(min_length=2, max_length=100)
