@@ -25,3 +25,9 @@ class Venta(SQLModel, table=True):
         default=None,
         sa_column=Column(JSON)
     )
+
+
+class Ingredientes(SQLModel, table=True):
+    __tablename__ = "Ingredientes"
+    id_ingrediente: Optional[int] = Field(default=None, primary_key=True)
+    ingrediente: str = Field(min_length=2, max_length=100)
