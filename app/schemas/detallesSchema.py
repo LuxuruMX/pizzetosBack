@@ -46,21 +46,3 @@ class readDetalleVenta(BaseModel):
 
 
 
-class ItemVentaRequest(BaseModel):
-    cantidad: int
-    precio_unitario: Decimal
-    
-    id_hamb: Optional[int] = None
-    id_cos: Optional[int] = None
-    id_alis: Optional[int] = None
-    id_spag: Optional[int] = None
-    id_papa: Optional[int] = None
-    id_rec: Optional[int] = None
-    id_barr: Optional[int] = None
-    id_maris: Optional[int] = None
-    id_refresco: Optional[int] = None
-    id_paquete: Optional[int] = None
-    detalle_paquete: Optional[str] = None
-    id_magno: Optional[int] = None
-    id_pizza: Optional[int] = None
-    status: Optional[int] = 1

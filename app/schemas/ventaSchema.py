@@ -3,7 +3,34 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from app.schemas.detallesSchema import ItemVentaRequest
+
+class Ingredientes(BaseModel):
+    tamano: int
+    ingredientes: List[int]
+
+
+class ItemVentaRequest(BaseModel):
+    cantidad: int
+    precio_unitario: Decimal
+    
+    id_hamb: Optional[int] = None
+    id_cos: Optional[int] = None
+    id_alis: Optional[int] = None
+    id_spag: Optional[int] = None
+    id_papa: Optional[int] = None
+    id_rec: Optional[int] = None
+    id_barr: Optional[int] = None
+    id_maris: Optional[int] = None
+    id_refresco: Optional[int] = None
+    id_paquete: Optional[int] = None
+    detalle_paquete: Optional[str] = None
+    id_magno: Optional[int] = None
+    id_pizza: Optional[int] = None
+    
+    #datos extra para ingredientes y status
+    ingredientes: Optional[Ingredientes] = None
+    status: Optional[int] = 1
+
 
 
 class PagoVentaRequest(BaseModel):
@@ -24,19 +51,6 @@ class PagoVentaRequest(BaseModel):
                     f'Debe proporcionar una referencia cuando el método de pago es {self.id_metpago}'
                 )
         return self
-
-class createVenta(BaseModel):
-    id_suc: int
-    id_cliente: int
-
-
-class readVenta(BaseModel):
-    id_venta: int
-    id_suc: int
-    id_cliente: int
-    fecha_hora: datetime
-    total: Decimal
-    status:int
     
     
 class VentaRequest(BaseModel):
