@@ -115,19 +115,23 @@ class VentaRequest(BaseModel):
             ]
             productos_definidos = sum(1 for p in productos if p is not None)
             
-            # Si hay ingredientes personalizados, no debe haber otro producto definido
+            # Si hay ingredientes personalizados... (sin cambios)
             if item.ingredientes is not None:
                 if productos_definidos > 0:
-                    raise ValueError(
-                        f'Item {idx + 1}: No puede especificar un producto e ingredientes personalizados al mismo tiempo'
-                    )
+                    raise ValueError(f'Item {idx + 1}: No puede especificar un producto e ingredientes...')
             else:
-                # Si no hay ingredientes, debe haber exactamente un producto
-                if productos_definidos != 1:
-                    raise ValueError(
-                        f'Item {idx + 1}: Debe especificar exactamente un producto o ingredientes personalizados'
-                    )
-
+                # AQUÍ ESTÁ EL CAMBIO:
+                # Si es un paquete, permitimos más de un ID (el del paquete + sus contenidos)
+                if item.id_paquete is not None:
+                    # Validar que al menos haya 1 producto (el paquete en sí ya cuenta)
+                    if productos_definidos < 1:
+                         raise ValueError(f'Item {idx + 1}: Paquete inválido')
+                else:
+                    # Si NO es paquete, mantenemos la regla estricta de SOLO UNO
+                    if productos_definidos != 1:
+                        raise ValueError(
+                            f'Item {idx + 1}: Debe especificar exactamente un producto o ingredientes personalizados'
+                        )
         return self
 
     
