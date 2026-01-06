@@ -306,21 +306,16 @@ async def listar_pedidos_cocina(
                 # NUEVO: Verificar si es un producto personalizado con ingredientes
                 if det.ingredientes:
                     from app.models.ventaModel import Ingredientes
+                    from app.models.tamanosPizzasModel import tamanosPizzas
                     
                     try:
                         ingredientes_data = det.ingredientes
                         tamano_id = ingredientes_data.get("tamano")
                         ids_ingredientes = ingredientes_data.get("ingredientes", [])
                         
-                        # Obtener información del tamaño (ajusta según tu modelo de tamaños)
-                        # Aquí asumo que tienes un modelo o diccionario para tamaños
-                        tamanios_dict = {
-                            1: "Personal",
-                            2: "Mediana", 
-                            3: "Grande",
-                            4: "Familiar"
-                        }
-                        nombre_tamano = tamanios_dict.get(tamano_id, f"Tamaño #{tamano_id}")
+                        statement_tamano = select(tamanosPizzas).where(tamanosPizzas.id_tamañop == tamano_id)
+                        tamano_obj = session.exec(statement_tamano).first()
+                        nombre_tamano = tamano_obj.tamano if tamano_obj else "Tamaño desconocido"
                         
                         # Obtener nombres de los ingredientes
                         nombres_ingredientes = []
@@ -336,7 +331,6 @@ async def listar_pedidos_cocina(
                         producto_info["es_personalizado"] = True
                         producto_info["detalles_ingredientes"] = {
                             "tamano": nombre_tamano,
-                            "tamano_id": tamano_id,
                             "ingredientes": nombres_ingredientes,
                             "cantidad_ingredientes": len(nombres_ingredientes)
                         }
