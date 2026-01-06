@@ -298,9 +298,63 @@ async def listar_pedidos_cocina(
                     "cantidad": det.cantidad,
                     "nombre": None,
                     "tipo": None,
-                    "status": det.status
+                    "status": det.status,
+                    "es_personalizado": False,
+                    "detalles_ingredientes": None
                 }
 
+                # NUEVO: Verificar si es un producto personalizado con ingredientes
+                if det.ingredientes:
+                    from app.models.ventaModel import Ingredientes
+                    
+                    try:
+                        ingredientes_data = det.ingredientes
+                        tamano_id = ingredientes_data.get("tamano")
+                        ids_ingredientes = ingredientes_data.get("ingredientes", [])
+                        
+                        # Obtener información del tamaño (ajusta según tu modelo de tamaños)
+                        # Aquí asumo que tienes un modelo o diccionario para tamaños
+                        tamanios_dict = {
+                            1: "Personal",
+                            2: "Mediana", 
+                            3: "Grande",
+                            4: "Familiar"
+                        }
+                        nombre_tamano = tamanios_dict.get(tamano_id, f"Tamaño #{tamano_id}")
+                        
+                        # Obtener nombres de los ingredientes
+                        nombres_ingredientes = []
+                        for id_ing in ids_ingredientes:
+                            ingrediente = session.get(Ingredientes, id_ing)
+                            if ingrediente:
+                                nombres_ingredientes.append(ingrediente.ingrediente)
+                            else:
+                                nombres_ingredientes.append(f"Ingrediente #{id_ing}")
+                        
+                        producto_info["nombre"] = f"Pizza Personalizada - {nombre_tamano}"
+                        producto_info["tipo"] = "Pizza Personalizada"
+                        producto_info["es_personalizado"] = True
+                        producto_info["detalles_ingredientes"] = {
+                            "tamano": nombre_tamano,
+                            "tamano_id": tamano_id,
+                            "ingredientes": nombres_ingredientes,
+                            "cantidad_ingredientes": len(nombres_ingredientes)
+                        }
+                        productos.append(producto_info)
+                        continue  # Saltar al siguiente detalle
+                        
+                    except Exception as e:
+                        # Si hay error al procesar ingredientes, mostrar como error
+                        producto_info["nombre"] = "Pizza Personalizada - Error al cargar"
+                        producto_info["tipo"] = "Pizza Personalizada"
+                        producto_info["es_personalizado"] = True
+                        producto_info["detalles_ingredientes"] = {
+                            "error": str(e)
+                        }
+                        productos.append(producto_info)
+                        continue
+
+                # RESTO DEL CÓDIGO ORIGINAL PARA PRODUCTOS NORMALES
                 if det.id_pizza and det.id_paquete != 2:
                     from app.models.pizzasModel import pizzas
                     producto = session.get(pizzas, det.id_pizza)
@@ -426,7 +480,9 @@ async def listar_pedidos_cocina(
                                             "cantidad": 1,
                                             "nombre": nombre_especialidad,
                                             "tipo": f"Paquete {det.id_paquete} - Pizza",
-                                            "status": det.status
+                                            "status": det.status,
+                                            "es_personalizado": False,
+                                            "detalles_ingredientes": None
                                         }
                                         productos.append(pizza_info)
                                 
@@ -435,7 +491,9 @@ async def listar_pedidos_cocina(
                                         "cantidad": 1,
                                         "nombre": f"Error al cargar pizza del paquete",
                                         "tipo": f"Paquete {det.id_paquete}",
-                                        "status": det.status
+                                        "status": det.status,
+                                        "es_personalizado": False,
+                                        "detalles_ingredientes": None
                                     }
                                     productos.append(error_info)
                         else:
@@ -456,7 +514,9 @@ async def listar_pedidos_cocina(
                                 "cantidad": 1,
                                 "nombre": refresco.nombre,
                                 "tipo": f"Paquete {det.id_paquete} - Refresco",
-                                "status": det.status
+                                "status": det.status,
+                                "es_personalizado": False,
+                                "detalles_ingredientes": None
                             }
                             productos.append(refresco_info)
                         
@@ -471,7 +531,9 @@ async def listar_pedidos_cocina(
                                 "cantidad": 1,
                                 "nombre": nombre_especialidad,
                                 "tipo": f"Paquete {det.id_paquete} - Pizza",
-                                "status": det.status
+                                "status": det.status,
+                                "es_personalizado": False,
+                                "detalles_ingredientes": None
                             }
                             productos.append(pizza_info)
                         if det.id_alis:
@@ -481,7 +543,9 @@ async def listar_pedidos_cocina(
                                     "cantidad": 1,
                                     "nombre": alita.orden,
                                     "tipo": f"Paquete {det.id_paquete} - Alitas",
-                                    "status": det.status
+                                    "status": det.status,
+                                    "es_personalizado": False,
+                                    "detalles_ingredientes": None
                                 }
                                 productos.append(alita_info)
                         else:
@@ -491,7 +555,9 @@ async def listar_pedidos_cocina(
                                     "cantidad": 1,
                                     "nombre": hamburguesa.paquete,
                                     "tipo": f"Paquete {det.id_paquete} - Hamburguesa",
-                                    "status": det.status
+                                    "status": det.status,
+                                    "es_personalizado": False,
+                                    "detalles_ingredientes": None
                                 }
                                 productos.append(hamb_info)
                         
@@ -510,7 +576,8 @@ async def listar_pedidos_cocina(
                 "tipo_servicio_texto": {
                     0: "Comer aquí",
                     1: "Para llevar",
-                    2: "Domicilio"
+                    2: "Domicilio",
+                    3: "Pedido Especial"
                 }.get(venta.tipo_servicio, "Desconocido"),
                 "mesa": venta.mesa if venta.tipo_servicio == 0 else None,
                 "sucursal": nombre_sucursal,
