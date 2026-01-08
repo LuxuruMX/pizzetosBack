@@ -3,7 +3,6 @@ from sqlmodel import Session, select, update
 from decimal import Decimal
 from datetime import datetime, timedelta
 from typing import Optional
-import json
 
 from app.db.session import get_session
 from app.models.detallesModel import DetalleVenta
@@ -49,7 +48,6 @@ from app.api.refactors.getsRefactor import (_get_cliente_nombre,
                                              _contar_productos_venta,
                                              _filtrar_por_fecha,
                                              _obtener_nombre_cliente_por_tipo_servicio,
-                                             _procesar_producto_personalizado,
                                              _procesar_producto_por_tipo)
 
 @router.get("/ver-pedidos-especiales")
@@ -564,7 +562,6 @@ async def crear_venta(
             status_code=500, 
             detail=f"Error al procesar la venta: {str(e)}"
         )
-
 
 
 

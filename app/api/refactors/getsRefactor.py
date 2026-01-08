@@ -13,6 +13,7 @@ def _get_cliente_nombre(session: Session, id_cliente: int) -> str:
     cliente = session.get(Cliente, id_cliente)
     return f"{cliente.nombre} {cliente.apellido}" if cliente else "Desconocido"
 
+
 def _get_direccion_detalle(session: Session, id_direccion: int) -> str:
     """Obtener detalle de la dirección"""
     from app.models.DireccionesModel import Direccion
@@ -21,11 +22,13 @@ def _get_direccion_detalle(session: Session, id_direccion: int) -> str:
         return f"{direccion.calle} {direccion.manzana}, {direccion.lote}, {direccion.colonia}, {direccion.referencia}"
     return "Desconocida"
 
+
 def _get_nombre_sucursal(session: Session, id_sucursal: int) -> str:
     """Obtener nombre de la sucursal"""
     from app.models.sucursalModel import Sucursal
     sucursal = session.get(Sucursal, id_sucursal)
     return sucursal.nombre if sucursal else "Desconocida"
+
 
 def _calcular_totales_venta(session: Session, id_venta: int) -> tuple[float, float, float]:
     """Calcular total venta, anticipo y saldo pendiente"""
@@ -47,12 +50,14 @@ def _calcular_totales_venta(session: Session, id_venta: int) -> tuple[float, flo
     
     return total_venta, anticipo, saldo_pendiente
 
+
 def _contar_productos_venta(session: Session, id_venta: int) -> int:
     """Contar cantidad total de productos en una venta"""
     from app.models.detallesModel import DetalleVenta
     statement_detalles = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
     detalles = session.exec(statement_detalles).all()
     return sum(detalle.cantidad for detalle in detalles)
+
 
 def _filtrar_por_fecha(statement, filtro: str) -> Any:
     """Aplicar filtro de fecha común a diferentes endpoints"""
@@ -75,6 +80,7 @@ def _filtrar_por_fecha(statement, filtro: str) -> Any:
     # "todos" no necesita filtro adicional
     
     return statement
+
 
 def _obtener_nombre_cliente_por_tipo_servicio(session: Session, venta) -> str:
     """Obtener nombre del cliente basado en el tipo de servicio"""
@@ -110,6 +116,7 @@ def _obtener_nombre_cliente_por_tipo_servicio(session: Session, venta) -> str:
         return f"{cliente.nombre} {cliente.apellido} - Especial" if cliente else "Sin nombre - Especial"
     
     return "Sin información"
+
 
 def _procesar_producto_personalizado(session: Session, det) -> Dict[str, Any]:
     """Procesar productos personalizados con ingredientes"""
@@ -159,6 +166,7 @@ def _procesar_producto_personalizado(session: Session, det) -> Dict[str, Any]:
             "tamano": "Error",
             "detalles_ingredientes": {"error": str(e)}
         }
+
 
 def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
     """Procesar diferentes tipos de productos en un detalle de venta"""
@@ -225,6 +233,7 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
     
     return productos
 
+
 def _procesar_pizza(session: Session, det) -> Optional[Dict[str, Any]]:
     from app.models.pizzasModel import pizzas
     from app.models.tamanosPizzasModel import tamanosPizzas
@@ -253,6 +262,7 @@ def _procesar_pizza(session: Session, det) -> Optional[Dict[str, Any]]:
         "tamano": tamanoP
     }
 
+
 def _procesar_hamburguesa(session: Session, det) -> Optional[Dict[str, Any]]:
     from app.models.hamburguesasModel import hamburguesas
     producto = session.get(hamburguesas, det.id_hamb)
@@ -268,6 +278,7 @@ def _procesar_hamburguesa(session: Session, det) -> Optional[Dict[str, Any]]:
         "detalles_ingredientes": None,
         "tamano": None
     }
+
 
 def _procesar_costilla(session: Session, det) -> Optional[Dict[str, Any]]:
     from app.models.costillasModel import costillas
@@ -285,6 +296,7 @@ def _procesar_costilla(session: Session, det) -> Optional[Dict[str, Any]]:
         "tamano": None
     }
 
+
 def _procesar_alitas(session: Session, det) -> Optional[Dict[str, Any]]:
     from app.models.alitasModel import alitas
     producto = session.get(alitas, det.id_alis)
@@ -300,6 +312,7 @@ def _procesar_alitas(session: Session, det) -> Optional[Dict[str, Any]]:
         "detalles_ingredientes": None,
         "tamano": None
     }
+
 
 def _procesar_spaghetti(session: Session, det) -> Optional[Dict[str, Any]]:
     from app.models.spaguettyModel import spaguetty
@@ -317,6 +330,7 @@ def _procesar_spaghetti(session: Session, det) -> Optional[Dict[str, Any]]:
         "tamano": None
     }
 
+
 def _procesar_papas(session: Session, det) -> Optional[Dict[str, Any]]:
     from app.models.papasModel import papas
     producto = session.get(papas, det.id_papa)
@@ -332,6 +346,7 @@ def _procesar_papas(session: Session, det) -> Optional[Dict[str, Any]]:
         "detalles_ingredientes": None,
         "tamano": None
     }
+
 
 def _procesar_mariscos(session: Session, det) -> Optional[Dict[str, Any]]:
     from app.models.mariscosModel import mariscos
@@ -360,6 +375,7 @@ def _procesar_mariscos(session: Session, det) -> Optional[Dict[str, Any]]:
         "tamano": tamano
     }
 
+
 def _procesar_refresco(session: Session, det) -> Optional[Dict[str, Any]]:
     from app.models.refrescosModel import refrescos
     producto = session.get(refrescos, det.id_refresco)
@@ -375,6 +391,7 @@ def _procesar_refresco(session: Session, det) -> Optional[Dict[str, Any]]:
         "detalles_ingredientes": None,
         "tamano": None
     }
+
 
 def _procesar_magno(session: Session, det) -> List[Dict[str, Any]]:
     from app.models.magnoModel import magno
@@ -398,7 +415,7 @@ def _procesar_magno(session: Session, det) -> List[Dict[str, Any]]:
     
     if nombres_magno:
         return [{
-            "cantidad": 1,
+            "cantidad": det.cantidad,
             "nombre": "Magno",
             "tipo": "Magno",
             "especialidades": nombres_magno,
@@ -408,6 +425,7 @@ def _procesar_magno(session: Session, det) -> List[Dict[str, Any]]:
             "tamano": None
         }]
     return []
+
 
 def _procesar_rectangular(session: Session, det) -> List[Dict[str, Any]]:
     from app.models.rectangularModel import rectangular
@@ -431,7 +449,7 @@ def _procesar_rectangular(session: Session, det) -> List[Dict[str, Any]]:
     
     if nombres_rect:
         return [{
-            "cantidad": 1,
+            "cantidad": det.cantidad,
             "nombre": "Rectangular",
             "tipo": "Rectangular",
             "especialidades": nombres_rect,
@@ -441,6 +459,7 @@ def _procesar_rectangular(session: Session, det) -> List[Dict[str, Any]]:
             "tamano": None
         }]
     return []
+
 
 def _procesar_barra(session: Session, det) -> List[Dict[str, Any]]:
     from app.models.barraModel import barra
@@ -464,7 +483,7 @@ def _procesar_barra(session: Session, det) -> List[Dict[str, Any]]:
     
     if nombres_barr:
         return [{
-            "cantidad": 1,
+            "cantidad": det.cantidad,
             "nombre": "Barra",
             "tipo": "Barra",
             "especialidades": nombres_barr,
@@ -474,6 +493,7 @@ def _procesar_barra(session: Session, det) -> List[Dict[str, Any]]:
             "tamano": None
         }]
     return []
+
 
 def _procesar_paquete(session: Session, det) -> List[Dict[str, Any]]:
     if det.id_paquete in [1, 3]:
@@ -491,6 +511,7 @@ def _procesar_paquete(session: Session, det) -> List[Dict[str, Any]]:
             "detalles_ingredientes": None,
             "tamano": None
         }]
+
 
 def _procesar_paquetes_tipo_1_3(session: Session, det) -> List[Dict[str, Any]]:
     from app.models.pizzasModel import pizzas
@@ -546,6 +567,7 @@ def _procesar_paquetes_tipo_1_3(session: Session, det) -> List[Dict[str, Any]]:
         })
     
     return productos
+
 
 def _procesar_paquetes_tipo_2(session: Session, det) -> List[Dict[str, Any]]:
     from app.models.pizzasModel import pizzas
@@ -628,3 +650,4 @@ def _procesar_paquetes_tipo_2(session: Session, det) -> List[Dict[str, Any]]:
             productos.append(hamb_info)
     
     return productos
+
