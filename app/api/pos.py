@@ -26,6 +26,21 @@ from sqlmodel import Session, select
 from datetime import datetime, timedelta
 
 
+from app.api.posRefactor import (validar_cliente_direccion,
+                                 crear_detalles_venta,
+                                 validar_items,
+                                 validar_pagos_tipo_servicio,
+                                 validar_domicilio,
+                                 validar_pedido_especial,
+                                 validar_mesa,
+                                 validar_sucursal,
+                                 crear_venta_base,
+                                 crear_registro_domicilio,
+                                 crear_pedido_especial,
+                                 crear_pagos,
+                                 crear_detalles_venta,
+                                 construir_respuesta)
+
 
 
 @router.get("/ver-pedidos-especiales")
@@ -1183,253 +1198,47 @@ async def crear_venta(
     venta_request: VentaRequest,
     session: Session = Depends(get_session)
 ):
-    if not venta_request.items:
-        raise HTTPException(status_code=400, detail="La venta debe contener al menos un item")
-
-    # Validar pagos si tipo_servicio es 1 o 3
-    if venta_request.tipo_servicio in [1, 3]:
-        if not venta_request.pagos or len(venta_request.pagos) == 0:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Debe especificar al menos un método de pago cuando el tipo de servicio es {venta_request.tipo_servicio}"
-            )
-
-    # Validar cliente y direccion si tipo_servicio es 2 o 3
-    if venta_request.tipo_servicio in [2, 3]:
-        if not venta_request.id_cliente:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Debe especificar el id_cliente cuando el tipo de servicio es {venta_request.tipo_servicio}"
-            )
-
-        cliente = session.get(Cliente, venta_request.id_cliente)
-        if not cliente:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Cliente con ID {venta_request.id_cliente} no encontrado"
-            )
-
-        if not venta_request.id_direccion:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Debe especificar el id_direccion cuando el tipo de servicio es {venta_request.tipo_servicio}"
-            )
-
-        direccion = session.get(Direccion, venta_request.id_direccion)
-        if not direccion:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Dirección con ID {venta_request.id_direccion} no encontrada"
-            )
-
-        # Validaciones y lógica especial para domicilio (tipo_servicio == 2)
-        detalles_domicilio = None
-        if venta_request.tipo_servicio == 2:
-            if not venta_request.pagos or len(venta_request.pagos) == 0:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Debe especificar el método de pago para domicilio (transferencia, tarjeta o efectivo) en el campo 'pagos' (para efectivo/tarjeta, solo el primer elemento es relevante)"
-                )
-            pago = venta_request.pagos[0]
-            # Transferencia: id_metpago == 1 (ajustar según tu catálogo)
-            if pago.id_metpago == 1:
-                # Debe traer referencia y el monto debe ser igual al total
-                if not pago.referencia:
-                    raise HTTPException(status_code=400, detail="Debe proporcionar la referencia de la transferencia")
-                if abs(pago.monto - venta_request.total) > Decimal('0.01'):
-                    raise HTTPException(status_code=400, detail="El monto de la transferencia debe ser igual al total de la venta")
-                detalles_domicilio = "Pago realizado por transferencia"
-
-            elif pago.id_metpago == 2:
-                detalles_domicilio = "Llevar terminal"
-            elif pago.id_metpago == 3:
-                # Debe traer con cuánto paga (en referencia)
-                if not pago.referencia:
-                    raise HTTPException(status_code=400, detail="Debe especificar con cuánto pagará el cliente en el campo 'referencia'")
-                try:
-                    cantidad_entregada = Decimal(pago.referencia)
-                except Exception:
-                    raise HTTPException(status_code=400, detail="El campo 'referencia' debe ser un número válido para efectivo")
-                if cantidad_entregada < venta_request.total:
-                    raise HTTPException(status_code=400, detail="La cantidad entregada debe ser mayor o igual al total de la venta")
-                detalles_domicilio = f"Llevar cambio de '{pago.referencia}'"
-                # No se registra pago en tabla Pago
-            else:
-                raise HTTPException(status_code=400, detail="Método de pago no soportado para domicilio")
-        if venta_request.tipo_servicio == 3:
-            if not venta_request.fecha_entrega:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Debe especificar la fecha_entrega cuando el tipo de servicio es 3 (Pedido Especial)"
-                )
-
-    # Validar mesa si tipo_servicio es 0 (comer aquí)
-    if venta_request.tipo_servicio == 0:
-        if venta_request.mesa is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Debe especificar el número de mesa cuando el tipo de servicio es 0 (comer aquí)"
-            )
-
-    # Validar sucursal
-    sucursal = session.get(Sucursal, venta_request.id_suc)
-    if not sucursal:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Sucursal con ID {venta_request.id_suc} no encontrada"
-        )
-
+    """
+    Endpoint principal para crear ventas.
+    Ahora organizado en funciones especializadas para mejor mantenibilidad.
+    """
     try:
-        # Crear la venta
-        nueva_venta = Venta(
-            id_suc=venta_request.id_suc,
-            mesa=venta_request.mesa if venta_request.tipo_servicio == 0 else None,
-            fecha_hora=datetime.now(),
-            total=Decimal(str(venta_request.total)),
-            comentarios=venta_request.comentarios,
-            tipo_servicio=venta_request.tipo_servicio,
-            status=venta_request.status,
-            nombreClie=venta_request.nombreClie,
-            id_caja=venta_request.id_caja,
-            detalles=detalles_domicilio if venta_request.tipo_servicio == 2 else None  # Aquí se escriben los detalles del domicilio
-        )
-        session.add(nueva_venta)
-        session.flush()
-
-
-        # Crear registro en pDireccion (solo domicilio) o PEspecial (solo pedido especial)
-        if venta_request.tipo_servicio == 2: # Domicilio
-            nuevo_domicilio = pDireccion(
-                id_clie=venta_request.id_cliente,
-                id_dir=venta_request.id_direccion,
-                id_venta=nueva_venta.id_venta,
-                detalles=None  # Ya no se escribe aquí, se escribe en Venta.detalles
-            )
-            session.add(nuevo_domicilio)
-
-            # Registrar pago solo si es transferencia
-            if venta_request.pagos and venta_request.pagos[0].id_metpago == 1:
-                pago = venta_request.pagos[0]
-                nuevo_pago = Pago(
-                    id_venta=nueva_venta.id_venta,
-                    id_metpago=pago.id_metpago,
-                    monto=Decimal(str(pago.monto)),
-                    referencia=pago.referencia
-                )
-                session.add(nuevo_pago)
-
-        elif venta_request.tipo_servicio == 3: # Pedido Especial
-            nuevo_pedido_especial = PEspecial(
-                id_venta=nueva_venta.id_venta,
-                id_dir=venta_request.id_direccion,
-                id_clie=venta_request.id_cliente,
-                fecha_creacion=datetime.now(),
-                fecha_entrega=venta_request.fecha_entrega
-            )
-            session.add(nuevo_pedido_especial)
-
-
-        # Crear pagos si tipo_servicio es 1 (para llevar) o 3 (pedido especial)
-        pagos_creados = []
-        if venta_request.tipo_servicio in [1, 3] and venta_request.pagos:
-            for pago_request in venta_request.pagos:
-                nuevo_pago = Pago(
-                    id_venta=nueva_venta.id_venta,
-                    id_metpago=pago_request.id_metpago,
-                    monto=Decimal(str(pago_request.monto)),
-                    referencia=pago_request.referencia  # Guardar la referencia
-                )
-                session.add(nuevo_pago)
-
-                pago_info = {
-                    "id_metpago": pago_request.id_metpago,
-                    "monto": float(pago_request.monto)
-                }
-                # Incluir referencia en la respuesta si existe
-                if pago_request.referencia:
-                    pago_info["referencia"] = pago_request.referencia
-
-                pagos_creados.append(pago_info)
-
-        # Crear los detalles de la venta
-        for item in venta_request.items:
-            ingredientes_json = None
-            if item.ingredientes:
-                ingredientes_json = {
-                    "tamano": item.ingredientes.tamano,
-                    "ingredientes": item.ingredientes.ingredientes
-            }
-                
-            nuevo_detalle = DetalleVenta(
-                id_venta=nueva_venta.id_venta,
-                cantidad=item.cantidad,
-                precio_unitario=Decimal(str(item.precio_unitario)),
-                id_hamb=item.id_hamb,
-                id_cos=item.id_cos,
-                id_alis=item.id_alis,
-                id_spag=item.id_spag,
-                id_papa=item.id_papa,
-                id_rec=item.id_rec,
-                id_barr=item.id_barr,
-                id_maris=item.id_maris,
-                id_refresco=item.id_refresco,
-                id_paquete=item.id_paquete,
-                detalle_paquete=item.detalle_paquete,
-                id_magno=item.id_magno,
-                id_pizza=item.id_pizza,
-                ingredientes=ingredientes_json
-            )
-            session.add(nuevo_detalle)
-
+        # Validaciones
+        validar_items(venta_request)
+        validar_pagos_tipo_servicio(venta_request)
+        validar_cliente_direccion(venta_request, session)
+        detalles_domicilio = validar_domicilio(venta_request)
+        validar_pedido_especial(venta_request)
+        validar_mesa(venta_request)
+        validar_sucursal(venta_request, session)
+        
+        # Creación de registros
+        nueva_venta = crear_venta_base(venta_request, detalles_domicilio, session)
+        crear_registro_domicilio(venta_request, nueva_venta.id_venta, session)
+        crear_pedido_especial(venta_request, nueva_venta.id_venta, session)
+        pagos_creados = crear_pagos(venta_request, nueva_venta.id_venta, session)
+        crear_detalles_venta(venta_request, nueva_venta.id_venta, session)
+        
+        # Commit de la transacción
         session.commit()
-
-        # Obtener los detalles para la respuesta
-        statement = select(DetalleVenta).where(DetalleVenta.id_venta == nueva_venta.id_venta)
-        detalles_db = session.exec(statement).all()
-
-        detalles_respuesta = []
-        for det in detalles_db:
-            subtotal = det.cantidad * det.precio_unitario
-            detalles_respuesta.append({
-                "cantidad": det.cantidad,
-                "precio_unitario": float(det.precio_unitario),
-                "subtotal": float(subtotal)
-            })
-
-        respuesta = {
-            "Mensaje": "Venta creada exitosamente",
-            "id_venta": nueva_venta.id_venta,
-            "total": float(nueva_venta.total),
-            "tipo_servicio": nueva_venta.tipo_servicio
-        }
-
-        # Agregar información específica según el tipo de servicio
-        if venta_request.tipo_servicio == 0:
-            respuesta["mesa"] = nueva_venta.mesa
-        elif venta_request.tipo_servicio == 1:
-            respuesta["pagos_registrados"] = pagos_creados
-            respuesta["numero_pagos"] = len(pagos_creados)
-        elif venta_request.tipo_servicio == 2:
-            respuesta["id_cliente"] = venta_request.id_cliente
-            respuesta["id_direccion"] = venta_request.id_direccion
-            respuesta["detalles_pago"] = detalles_domicilio  # Incluir en respuesta
-        elif venta_request.tipo_servicio == 3: # Nuevo bloque para Pedido Especial
-            respuesta["id_cliente"] = venta_request.id_cliente
-            respuesta["id_direccion"] = venta_request.id_direccion
-            respuesta["pagos_registrados"] = pagos_creados # Puede ser anticipo
-            respuesta["numero_pagos"] = len(pagos_creados)
-            # Opcional: agregar info de PEspecial si es relevante
-            # respuesta["id_pedido_especial"] = nuevo_pedido_especial.id_pespeciales
-
-        # Agregar nombreClie a la respuesta si existe
-        if venta_request.nombreClie:
-            respuesta["nombreClie"] = venta_request.nombreClie
-
-        return respuesta
-
+        
+        # Construir y retornar respuesta
+        return construir_respuesta(
+            venta_request, 
+            nueva_venta, 
+            pagos_creados, 
+            detalles_domicilio
+        )
+        
+    except HTTPException:
+        session.rollback()
+        raise
     except Exception as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al procesar la venta: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al procesar la venta: {str(e)}"
+        )
 
 
 
