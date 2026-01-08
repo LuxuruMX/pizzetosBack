@@ -453,7 +453,6 @@ async def listar_pedidos_cocina(
                         producto_info["tipo"] = "Refresco"
                     productos.append(producto_info)
                 
-                # ✅ MODIFICADO: id_magno ahora es una lista/array -> agrupado en un solo producto
                 if det.id_magno:
                     from app.models.magnoModel import magno
                     try:
@@ -476,6 +475,7 @@ async def listar_pedidos_cocina(
                     if nombres_magno:
                         producto_info = {
                             "cantidad": 1,
+                            "nombre": "Magno",
                             "tipo": "Magno",
                             "especialidades": nombres_magno,
                             "status": det.status,
@@ -508,6 +508,7 @@ async def listar_pedidos_cocina(
                     if nombres_rect:
                         producto_info = {
                             "cantidad": 1,
+                            "nombre": "Rectangular",
                             "tipo": "Rectangular",
                             "especialidades": nombres_rect,
                             "status": det.status,
@@ -538,7 +539,8 @@ async def listar_pedidos_cocina(
 
                     if nombres_barr:
                         producto_info = {
-                            "cantidad": len(nombres_barr),  # Usar longitud de la lista como cantidad
+                            "cantidad": 1,
+                            "nombre": "Barra",
                             "tipo": "Barra",
                             "especialidades": nombres_barr,
                             "status": det.status,
@@ -1092,7 +1094,8 @@ async def obtener_detalle_pedido_cocina(
 
                 if nombres_magno:
                     producto_info = {
-                        "cantidad": len(nombres_magno),
+                        "cantidad": 1,
+                        "nombre": "Magno",
                         "tipo": "Magno",
                         "especialidades": nombres_magno,
                         "status": det.status,
@@ -1124,7 +1127,8 @@ async def obtener_detalle_pedido_cocina(
 
                 if nombres_rect:
                     producto_info = {
-                        "cantidad": len(nombres_rect),
+                        "cantidad": 1,
+                        "nombre": "Rectangular",
                         "tipo": "Rectangular",
                         "especialidades": nombres_rect,
                         "status": det.status,
@@ -1156,7 +1160,8 @@ async def obtener_detalle_pedido_cocina(
 
                 if nombres_barr:
                     producto_info = {
-                        "cantidad": len(nombres_barr),
+                        "cantidad": 1,
+                        "nombre": "Barra",
                         "tipo": "Barra",
                         "especialidades": nombres_barr,
                         "status": det.status,
