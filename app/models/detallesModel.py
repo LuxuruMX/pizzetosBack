@@ -1,6 +1,6 @@
 from __future__ import annotations
 from decimal import Decimal
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, Numeric
 from sqlalchemy import JSON
@@ -22,13 +22,21 @@ class DetalleVenta(SQLModel, table=True):
     id_alis: Optional[int] = Field(default=None)
     id_spag: Optional[int] = Field(default=None)
     id_papa: Optional[int] = Field(default=None)
-    id_rec: Optional[int] = Field(default=None)
-    id_barr: Optional[int] = Field(default=None)
+    id_rec: Optional[List[int]] = Field(
+        default=None,
+        sa_column=Column(JSON)
+    )
+    id_barr: Optional[List[int]] = Field(
+        default=None,
+        sa_column=Column(JSON)
+    )
     id_maris: Optional[int] = Field(default=None)
     id_refresco: Optional[int] = Field(default=None)
     id_paquete: Optional[int] = Field(default=None)
     detalle_paquete: Optional[str] = Field(default=None)
-    id_magno: Optional[int] = Field(default=None)
+    id_magno: Optional[List[int]] = Field(
+        sa_column=Column(JSON)
+    )
     id_pizza: Optional[int] = Field(default=None)
     ingredientes: Optional[Dict[str, Any]] = Field(
         default=None,
