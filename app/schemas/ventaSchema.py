@@ -25,18 +25,40 @@ class ItemVentaRequest(BaseModel):
     id_alis: Optional[int] = None
     id_spag: Optional[int] = None
     id_papa: Optional[int] = None
-    id_rec: Optional[int] = None
-    id_barr: Optional[int] = None
+    id_rec: Optional[List[int]] = None
+    id_barr: Optional[List[int]] = None
     id_maris: Optional[int] = None
     id_refresco: Optional[int] = None
     id_paquete: Optional[int] = None
     detalle_paquete: Optional[str] = None
-    id_magno: Optional[int] = None
+    id_magno: Optional[List[int]] = None
     id_pizza: Optional[int] = None
     
     #datos extra para ingredientes y status
     ingredientes: Optional[Ingredientes] = None
     status: Optional[int] = 1
+    
+    
+    @field_validator('id_rec')
+    @classmethod
+    def validar_rec(cls, v):
+        if v is not None and len(v) != 4:
+            raise ValueError('id_rec debe contener exactamente 4 productos')
+        return v
+
+    @field_validator('id_barr')
+    @classmethod
+    def validar_barr(cls, v):
+        if v is not None and len(v) != 2:
+            raise ValueError('id_barr debe contener exactamente 2 productos')
+        return v
+
+    @field_validator('id_magno')
+    @classmethod
+    def validar_magno(cls, v):
+        if v is not None and len(v) != 2:
+            raise ValueError('id_magno debe contener exactamente 2 productos')
+        return v
 
 
 
@@ -113,8 +135,20 @@ class VentaRequest(BaseModel):
                 item.id_papa, item.id_rec, item.id_barr, item.id_maris,
                 item.id_refresco, item.id_paquete, item.id_magno, item.id_pizza
             ]
-            productos_definidos = sum(1 for p in productos if p is not None)
+            def contar_producto(p):
+                if p is None:
+                    return 0
+                if isinstance(p, list):
+                    return 1 if len(p) > 0 else 0
+                return 1
             
+            productos = [
+                item.id_hamb, item.id_cos, item.id_alis, item.id_spag,
+                item.id_papa, item.id_rec, item.id_barr, item.id_maris,
+                item.id_refresco, item.id_paquete, item.id_magno, item.id_pizza
+            ]
+            
+            productos_definidos = sum(contar_producto(p) for p in productos)
             # Si hay ingredientes personalizados... (sin cambios)
             if item.ingredientes is not None:
                 if productos_definidos > 0:
