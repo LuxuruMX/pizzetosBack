@@ -27,7 +27,7 @@ from sqlmodel import Session, select
 from datetime import datetime, timedelta
 
 
-from app.api.posRefactor import (validar_cliente_direccion,
+from app.api.refactors.posRefactor import (validar_cliente_direccion,
                                  crear_detalles_venta,
                                  validar_items,
                                  validar_pagos_tipo_servicio,
@@ -42,7 +42,15 @@ from app.api.posRefactor import (validar_cliente_direccion,
                                  crear_detalles_venta,
                                  construir_respuesta)
 
-
+from app.api.refactors.getsRefactor import (_get_cliente_nombre,
+                                             _get_direccion_detalle,
+                                             _get_nombre_sucursal,
+                                             _calcular_totales_venta,
+                                             _contar_productos_venta,
+                                             _filtrar_por_fecha,
+                                             _obtener_nombre_cliente_por_tipo_servicio,
+                                             _procesar_producto_personalizado,
+                                             _procesar_producto_por_tipo)
 
 @router.get("/ver-pedidos-especiales")
 async def ver_pedidos_especiales(
@@ -52,14 +60,16 @@ async def ver_pedidos_especiales(
 ):
     try:
         # Base select ordered por creación
+        from app.models.pEspecialModel import PEspecial
+        from app.models.ventaModel import Venta
+        
         statement = select(PEspecial).order_by(PEspecial.fecha_creacion.asc())
 
-        # Filtrar por sucursal: si id_suc == 1 -> todas las sucursales, si !=1 -> solo esa sucursal
+        # Filtrar por sucursal
         if id_suc != 1:
-            # join con Venta para filtrar por Venta.id_suc
             statement = statement.join(Venta, PEspecial.id_venta == Venta.id_venta).where(Venta.id_suc == id_suc)
 
-        # Filtrar por status: por defecto mostrar solo status=1, si se pasa status usar ese
+        # Filtrar por status
         if status is None:
             statement = statement.where(PEspecial.status == 1)
         else:
@@ -69,32 +79,10 @@ async def ver_pedidos_especiales(
 
         resultados = []
         for pedido in pedidos_especiales:
-            # Obtener información del cliente
-            cliente = session.get(Cliente, pedido.id_clie)
-            nombre_cliente = cliente.nombre + " " + cliente.apellido if cliente else "Desconocido"
-
-            # Obtener información de la dirección
-            direccion = session.get(Direccion, pedido.id_dir)
-            detalles_direccion = f"{direccion.calle} {direccion.manzana}, {direccion.lote}, {direccion.colonia}, {direccion.referencia}" if direccion else "Desconocida"
-
-            # Obtener información de la venta
-            venta = session.get(Venta, pedido.id_venta)
-            total_venta = float(venta.total) if venta else 0.0
-
-            # Calcular el anticipo (suma de todos los pagos)
-            statement_pagos = select(Pago).where(Pago.id_venta == pedido.id_venta)
-            pagos = session.exec(statement_pagos).all()
-            anticipo = sum(float(pago.monto) for pago in pagos)
-
-            # Calcular saldo pendiente
-            saldo_pendiente = total_venta - anticipo
-
-            # Contar cantidad de productos
-            statement_detalles = select(DetalleVenta).where(
-                DetalleVenta.id_venta == pedido.id_venta
-            )
-            detalles = session.exec(statement_detalles).all()
-            cantidad_productos = sum(detalle.cantidad for detalle in detalles)
+            nombre_cliente = _get_cliente_nombre(session, pedido.id_clie)
+            detalles_direccion = _get_direccion_detalle(session, pedido.id_dir)
+            total_venta, anticipo, saldo_pendiente = _calcular_totales_venta(session, pedido.id_venta)
+            cantidad_productos = _contar_productos_venta(session, pedido.id_venta)
 
             resultados.append({
                 "id_pespeciales": pedido.id_pespeciales,
@@ -115,7 +103,6 @@ async def ver_pedidos_especiales(
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos especiales: {str(e)}")
 
 
-
 @router.get("/pedidos-resumen")
 async def listar_pedidos_resumen(
     session: Session = Depends(get_session),
@@ -124,26 +111,13 @@ async def listar_pedidos_resumen(
     id_suc: Optional[int] = None,
 ):
     try:
+        from app.models.ventaModel import Venta
+        from app.models.pagosModel import Pago
+        
         statement = select(Venta).order_by(Venta.fecha_hora.desc())
 
-        now = datetime.now()
-        
-        if filtro == "hoy":
-            hoy_inicio = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            hoy_fin = hoy_inicio + timedelta(days=1)
-            statement = statement.where(
-                Venta.fecha_hora >= hoy_inicio,
-                Venta.fecha_hora < hoy_fin
-            )
-        elif filtro == "semana":
-            inicio_semana = now - timedelta(days=now.weekday())
-            inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
-            statement = statement.where(Venta.fecha_hora >= inicio_semana)
-        elif filtro == "mes":
-            inicio_mes = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            statement = statement.where(Venta.fecha_hora >= inicio_mes)
-        elif filtro == "todos":
-            pass
+        # Aplicar filtro de fecha
+        statement = _filtrar_por_fecha(statement, filtro)
 
         if status is not None:
             statement = statement.where(Venta.status == status)
@@ -158,37 +132,13 @@ async def listar_pedidos_resumen(
             # Verificar si tiene pagos registrados
             statement_pago = select(Pago).where(Pago.id_venta == venta.id_venta)
             pago_existente = session.exec(statement_pago).first()
-            pagado = pago_existente is not None  # True si existe al menos un pago
+            pagado = pago_existente is not None
 
             # Obtener cliente según el tipo de servicio
-            nombre_cliente = None
-            if venta.tipo_servicio == 0:  # Comer aquí
-                # Mostrar Mesa X - Nombre del cliente
-                mesa_num = venta.mesa if venta.mesa else "S/N"
-                nombre_base = venta.nombreClie if venta.nombreClie else "Sin nombre"
-                nombre_cliente = f"Mesa {mesa_num} - {nombre_base}"
-            elif venta.tipo_servicio == 1:  # Para llevar
-                # Solo mostrar el nombre del cliente
-                nombre_cliente = venta.nombreClie if venta.nombreClie else "Para llevar"
-            elif venta.tipo_servicio == 2:  # Domicilio
-                # Buscar en pDireccion
-                statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
-                domicilio = session.exec(statement_domicilio).first()
-                if domicilio and domicilio.id_clie:
-                    cliente = session.get(Cliente, domicilio.id_clie)
-                    nombre_cliente = cliente.nombre if cliente else "Cliente sin nombre"
-                else:
-                    nombre_cliente = venta.nombreClie if venta.nombreClie else "Domicilio sin cliente"
-            # Valor por defecto si algo falló
-            if not nombre_cliente:
-                nombre_cliente = "Sin información"
+            nombre_cliente = _obtener_nombre_cliente_por_tipo_servicio(session, venta)
 
-            sucursal = session.get(Sucursal, venta.id_suc)
-            nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
-
-            statement_detalles = select(DetalleVenta).where(DetalleVenta.id_venta == venta.id_venta)
-            detalles = session.exec(statement_detalles).all()
-            total_items = sum(det.cantidad for det in detalles)
+            nombre_sucursal = _get_nombre_sucursal(session, venta.id_suc)
+            total_items = _contar_productos_venta(session, venta.id_venta)
 
             pedido_dict = {
                 "id_venta": venta.id_venta,
@@ -228,7 +178,6 @@ async def listar_pedidos_resumen(
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
 
 
-
 @router.get("/pedidos-cocina")
 async def listar_pedidos_cocina(
     session: Session = Depends(get_session),
@@ -236,17 +185,13 @@ async def listar_pedidos_cocina(
     id_suc: Optional[int] = None,
 ):
     try:
-        # Construir query base
+        from app.models.ventaModel import Venta
+        from app.models.detallesModel import DetalleVenta
+        
         statement = select(Venta).order_by(Venta.fecha_hora.asc())
 
         # Filtro por fecha
-        if filtro == "hoy":
-            hoy_inicio = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            hoy_fin = hoy_inicio + timedelta(days=1)
-            statement = statement.where(
-                Venta.fecha_hora >= hoy_inicio,
-                Venta.fecha_hora < hoy_fin
-            )
+        statement = _filtrar_por_fecha(statement, filtro)
 
         # Filtrar por status: solo mostrar Esperando (0) y Preparando (1)
         statement = statement.where(Venta.status.in_([0, 1]))
@@ -260,45 +205,10 @@ async def listar_pedidos_cocina(
         pedidos_cocina = []
         for venta in ventas:
             # Obtener cliente según el tipo de servicio
-            nombre_cliente = None
-
-            if venta.tipo_servicio == 0:
-                mesa_num = venta.mesa if venta.mesa else "S/N"
-                nombre_base = venta.nombreClie if venta.nombreClie else "Sin nombre"
-                nombre_cliente = f"Mesa {mesa_num} - {nombre_base}"
-
-            elif venta.tipo_servicio == 1:
-                nombre_cliente = venta.nombreClie if venta.nombreClie else "Para llevar"
-
-            elif venta.tipo_servicio == 2:
-                statement_domicilio = select(pDireccion).where(pDireccion.id_venta == venta.id_venta)
-                domicilio = session.exec(statement_domicilio).first()
-
-                if domicilio and domicilio.id_clie:
-                    cliente = session.get(Cliente, domicilio.id_clie)
-                    nombre_cliente = cliente.nombre if cliente else "Cliente sin nombre"
-                else:
-                    nombre_cliente = venta.nombreClie if venta.nombreClie else "Domicilio sin cliente"
-
-            elif venta.tipo_servicio == 3:
-                statement_pespecial = select(PEspecial).where(PEspecial.id_venta == venta.id_venta)
-                pes = session.exec(statement_pespecial).first()
-                if not pes:
-                    continue
-                # Si no es día de entrega, omitir
-                if not pes.fecha_entrega or pes.fecha_entrega.date() != datetime.now().date():
-                    continue
-
-                cliente = session.get(Cliente, pes.id_clie) if pes.id_clie else None
-                nombre_cliente = f"{cliente.nombre} {cliente.apellido} - Especial" if cliente else "Sin nombre - Especial"
-
-            # Valor por defecto si algo falló
-            if not nombre_cliente:
-                nombre_cliente = "Sin información"
+            nombre_cliente = _obtener_nombre_cliente_por_tipo_servicio(session, venta)
 
             # Obtener sucursal
-            sucursal = session.get(Sucursal, venta.id_suc)
-            nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
+            nombre_sucursal = _get_nombre_sucursal(session, venta.id_suc)
 
             # Obtener detalles de productos
             statement_detalles = select(DetalleVenta).where(
@@ -307,369 +217,11 @@ async def listar_pedidos_cocina(
             )
             detalles = session.exec(statement_detalles).all()
 
-            # Construir lista de productos con nombres
+            # Procesar productos
             productos = []
             for det in detalles:
-                producto_info = {
-                    "cantidad": det.cantidad,
-                    "nombre": None,
-                    "tipo": None,
-                    "status": det.status,
-                    "es_personalizado": False,
-                    "detalles_ingredientes": None,
-                    "tamano": None
-                }
+                productos.extend(_procesar_producto_por_tipo(session, det))
 
-                # NUEVO: Verificar si es un producto personalizado con ingredientes
-                if det.ingredientes:
-                    from app.models.ventaModel import Ingredientes
-                    from app.models.tamanosPizzasModel import tamanosPizzas
-                    
-                    try:
-                        ingredientes_data = det.ingredientes
-                        tamano_id = ingredientes_data.get("tamano")
-                        ids_ingredientes = ingredientes_data.get("ingredientes", [])
-                        
-                        # Obtener el nombre del tamaño usando la sesión de SQLAlchemy
-                        statement_tamano = select(tamanosPizzas).where(tamanosPizzas.id_tamañop == tamano_id)
-                        tamano_obj = session.exec(statement_tamano).first()
-                        nombre_tamano = tamano_obj.tamano if tamano_obj else "Tamaño desconocido"
-                        
-                        # Obtener nombres de los ingredientes
-                        nombres_ingredientes = []
-                        for id_ing in ids_ingredientes:
-                            ingrediente = session.get(Ingredientes, id_ing)
-                            if ingrediente:
-                                nombres_ingredientes.append(ingrediente.ingrediente)
-                            else:
-                                nombres_ingredientes.append(f"Ingrediente #{id_ing}")
-                        
-                        producto_info["nombre"] = f"Pizza Personalizada - {nombre_tamano}"
-                        producto_info["tipo"] = "Pizza Personalizada"
-                        producto_info["es_personalizado"] = True
-                        producto_info["tamano"] = nombre_tamano
-                        producto_info["detalles_ingredientes"] = {
-                            "tamano": nombre_tamano,
-                            "tamano_id": tamano_id,
-                            "ingredientes": nombres_ingredientes,
-                            "cantidad_ingredientes": len(nombres_ingredientes)
-                        }
-                        productos.append(producto_info)
-                        continue  # Saltar al siguiente detalle
-                        
-                    except Exception as e:
-                        # Si hay error al procesar ingredientes, mostrar como error
-                        producto_info["nombre"] = "Pizza Personalizada - Error al cargar"
-                        producto_info["tipo"] = "Pizza Personalizada"
-                        producto_info["es_personalizado"] = True
-                        producto_info["tamano"] = "Error"
-                        producto_info["detalles_ingredientes"] = {
-                            "error": str(e)
-                        }
-                        productos.append(producto_info)
-                        continue
-
-                if det.id_pizza and det.id_paquete != 2:
-                    from app.models.pizzasModel import pizzas
-                    from app.models.tamanosPizzasModel import tamanosPizzas
-                    producto = session.get(pizzas, det.id_pizza)
-                    if producto:
-                        try:
-                            from app.models.especialidadModel import especialidad
-                            especialidad_obj = session.get(especialidad, producto.id_esp)
-                            tamano_obj = session.get(tamanosPizzas, producto.id_tamano)
-                            nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
-                            tamanoP = tamano_obj.tamano if tamano_obj else f"Tamaño #{producto.id_tamano}"
-                        except:
-                            nombre_especialidad = f"Especialidad #{producto.id_esp}"
-                            tamanoP = f"Tamaño #{producto.id_tamano}"
-
-                        producto_info["nombre"] = f"{nombre_especialidad} - {tamanoP}"
-                        producto_info["tipo"] = "Pizza"
-                        producto_info["tamano"] = tamanoP
-                    productos.append(producto_info)
-                    
-                if det.id_hamb and det.id_paquete != 2:
-                    from app.models.hamburguesasModel import hamburguesas
-                    producto = session.get(hamburguesas, det.id_hamb)
-                    if producto:
-                        producto_info["nombre"] = producto.paquete
-                        producto_info["tipo"] = "Hamburguesa"
-                    productos.append(producto_info)
-                
-                if det.id_cos:
-                    from app.models.costillasModel import costillas
-                    producto = session.get(costillas, det.id_cos)
-                    if producto:
-                        producto_info["nombre"] = producto.orden
-                        producto_info["tipo"] = "Costilla"
-                    productos.append(producto_info)
-                
-                if det.id_alis and det.id_paquete != 2:
-                    from app.models.alitasModel import alitas
-                    producto = session.get(alitas, det.id_alis)
-                    if producto:
-                        producto_info["nombre"] = producto.orden
-                        producto_info["tipo"] = "Alitas"
-                    productos.append(producto_info)
-                
-                if det.id_spag:
-                    from app.models.spaguettyModel import spaguetty
-                    producto = session.get(spaguetty, det.id_spag)
-                    if producto:
-                        producto_info["nombre"] = producto.orden
-                        producto_info["tipo"] = "Spaghetti"
-                    productos.append(producto_info)
-                
-                if det.id_papa:
-                    from app.models.papasModel import papas
-                    producto = session.get(papas, det.id_papa)
-                    if producto:
-                        producto_info["nombre"] = producto.orden
-                        producto_info["tipo"] = "Papas"
-                    productos.append(producto_info)
-                
-                if det.id_maris:
-                    from app.models.mariscosModel import mariscos
-                    from app.models.tamanosPizzasModel import tamanosPizzas
-                    producto = session.get(mariscos, det.id_maris)
-                    if producto:
-                        try:
-                            tamano_obj = session.get(tamanosPizzas, producto.id_tamano) if hasattr(producto, 'id_tamano') else None
-                            tamano_marisco = tamano_obj.tamano if tamano_obj else "Tamaño desconocido"
-                            producto_info["nombre"] = f"{producto.nombre} - {tamano_marisco}"
-                            producto_info["tamano"] = tamano_marisco
-                        except:
-                            producto_info["nombre"] = producto.nombre
-                            producto_info["tamano"] = "Tamaño desconocido"
-                        producto_info["tipo"] = "Mariscos"
-                    productos.append(producto_info)
-                
-                if det.id_refresco and det.id_paquete != 2:
-                    from app.models.refrescosModel import refrescos
-                    producto = session.get(refrescos, det.id_refresco)
-                    if producto:
-                        producto_info["nombre"] = producto.nombre
-                        producto_info["tipo"] = "Refresco"
-                    productos.append(producto_info)
-                
-                if det.id_magno:
-                    from app.models.magnoModel import magno
-                    try:
-                        lista_ids = json.loads(det.id_magno) if isinstance(det.id_magno, str) else det.id_magno
-                    except:
-                        lista_ids = det.id_magno if isinstance(det.id_magno, list) else [det.id_magno]
-
-                    nombres_magno = []
-                    for id_mag in lista_ids:
-                        producto = session.get(magno, id_mag)
-                        if producto:
-                            try:
-                                from app.models.especialidadModel import especialidad
-                                especialidad_obj = session.get(especialidad, producto.id_especialidad)
-                                nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
-                            except:
-                                nombre_especialidad = f"Especialidad #{producto.id_especialidad}"
-                            nombres_magno.append(nombre_especialidad)
-
-                    if nombres_magno:
-                        producto_info = {
-                            "cantidad": 1,
-                            "nombre": "Magno",
-                            "tipo": "Magno",
-                            "especialidades": nombres_magno,
-                            "status": det.status,
-                            "es_personalizado": False,
-                            "detalles_ingredientes": None,
-                            "tamano": None
-                        }
-                        productos.append(producto_info)
-
-                # ✅ MODIFICADO: id_rec ahora es una lista/array -> agrupado en un solo producto
-                if det.id_rec:
-                    from app.models.rectangularModel import rectangular
-                    try:
-                        lista_ids = json.loads(det.id_rec) if isinstance(det.id_rec, str) else det.id_rec
-                    except:
-                        lista_ids = det.id_rec if isinstance(det.id_rec, list) else [det.id_rec]
-
-                    nombres_rect = []
-                    for id_rec in lista_ids:
-                        producto = session.get(rectangular, id_rec)
-                        if producto:
-                            try:
-                                from app.models.especialidadModel import especialidad
-                                especialidad_obj = session.get(especialidad, producto.id_esp)
-                                nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
-                            except:
-                                nombre_especialidad = f"Especialidad #{producto.id_esp}"
-                            nombres_rect.append(nombre_especialidad)
-
-                    if nombres_rect:
-                        producto_info = {
-                            "cantidad": 1,
-                            "nombre": "Rectangular",
-                            "tipo": "Rectangular",
-                            "especialidades": nombres_rect,
-                            "status": det.status,
-                            "es_personalizado": False,
-                            "detalles_ingredientes": None,
-                            "tamano": None
-                        }
-                        productos.append(producto_info)
-
-                if det.id_barr:
-                    from app.models.barraModel import barra
-                    try:
-                        lista_ids = json.loads(det.id_barr) if isinstance(det.id_barr, str) else det.id_barr
-                    except:
-                        lista_ids = det.id_barr if isinstance(det.id_barr, list) else [det.id_barr]
-
-                    nombres_barr = []
-                    for id_barr in lista_ids:
-                        producto = session.get(barra, id_barr)  # Usar el modelo barra
-                        if producto:
-                            try:
-                                from app.models.especialidadModel import especialidad
-                                especialidad_obj = session.get(especialidad, producto.id_especialidad)  # id_especialidad según tu modelo
-                                nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
-                            except:
-                                nombre_especialidad = f"Especialidad #{producto.id_especialidad}"
-                            nombres_barr.append(nombre_especialidad)
-
-                    if nombres_barr:
-                        producto_info = {
-                            "cantidad": 1,
-                            "nombre": "Barra",
-                            "tipo": "Barra",
-                            "especialidades": nombres_barr,
-                            "status": det.status,
-                            "es_personalizado": False,
-                            "detalles_ingredientes": None,
-                            "tamano": None
-                        }
-                        productos.append(producto_info)
-
-                if det.id_paquete:
-                    if det.id_paquete in [1, 3]:
-                        from app.models.pizzasModel import pizzas
-                        from app.models.especialidadModel import especialidad
-                        
-                        if det.detalle_paquete:
-                            ids_pizzas = det.detalle_paquete.split(",")
-                            
-                            for id_pizza_str in ids_pizzas:
-                                try:
-                                    id_pizza = int(id_pizza_str.strip())
-                                    pizza = session.get(pizzas, id_pizza)
-                                    
-                                    if pizza:
-                                        try:
-                                            especialidad_obj = session.get(especialidad, pizza.id_esp)
-                                            nombre_especialidad = especialidad_obj.nombre if especialidad_obj else f"Especialidad #{pizza.id_esp}"
-                                        except:
-                                            nombre_especialidad = f"Especialidad #{pizza.id_esp}"
-                                        
-                                        pizza_info = {
-                                            "cantidad": 1,
-                                            "nombre": nombre_especialidad,
-                                            "tipo": f"Paquete {det.id_paquete} - Pizza",
-                                            "status": det.status,
-                                            "es_personalizado": False,
-                                            "detalles_ingredientes": None,
-                                            "tamano": None
-                                        }
-                                        productos.append(pizza_info)
-                                
-                                except (ValueError, AttributeError) as e:
-                                    error_info = {
-                                        "cantidad": 1,
-                                        "nombre": f"Error al cargar pizza del paquete",
-                                        "tipo": f"Paquete {det.id_paquete}",
-                                        "status": det.status,
-                                        "es_personalizado": False,
-                                        "detalles_ingredientes": None,
-                                        "tamano": None
-                                    }
-                                    productos.append(error_info)
-                        else:
-                            producto_info["nombre"] = f"Paquete {det.id_paquete} - Sin detalle"
-                            producto_info["tipo"] = "Paquete"
-                            producto_info["status"] = det.status
-                            producto_info["tamano"] = None
-                            productos.append(producto_info)
-                    elif det.id_paquete == 2:
-                        from app.models.pizzasModel import pizzas
-                        from app.models.especialidadModel import especialidad
-                        from app.models.alitasModel import alitas
-                        from app.models.refrescosModel import refrescos
-                        from app.models.hamburguesasModel import hamburguesas
-                        
-                        refresco = session.get(refrescos, det.id_refresco)
-                        if refresco:
-                            refresco_info = {
-                                "cantidad": 1,
-                                "nombre": refresco.nombre,
-                                "tipo": f"Paquete {det.id_paquete} - Refresco",
-                                "status": det.status,
-                                "es_personalizado": False,
-                                "detalles_ingredientes": None,
-                                "tamano": None
-                            }
-                            productos.append(refresco_info)
-                        
-                        producto = session.get(pizzas, det.id_pizza)
-                        if producto:
-                            try:
-                                especialidad_obj = session.get(especialidad, producto.id_esp)
-                                nombre_especialidad = especialidad_obj.nombre if especialidad_obj else "Especialidad desconocida"
-                            except:
-                                nombre_especialidad = f"Especialidad #{producto.id_esp}"
-                            
-                            try:
-                                from app.models.tamanosPizzasModel import tamanosPizzas
-                                tamano_obj = session.get(tamanosPizzas, producto.id_tamano)
-                                tamanoP = tamano_obj.tamano if tamano_obj else f"Tamaño #{producto.id_tamano}"
-                            except:
-                                tamanoP = f"Tamaño #{producto.id_tamano}"
-                            
-                            pizza_info = {
-                                "cantidad": 1,
-                                "nombre": f"{nombre_especialidad} - {tamanoP}",
-                                "tipo": f"Paquete {det.id_paquete} - Pizza",
-                                "status": det.status,
-                                "es_personalizado": False,
-                                "detalles_ingredientes": None,
-                                "tamano": tamanoP
-                            }
-                            productos.append(pizza_info)
-                        if det.id_alis:
-                            alita = session.get(alitas, det.id_alis)
-                            if alita:
-                                alita_info = {
-                                    "cantidad": 1,
-                                    "nombre": alita.orden,
-                                    "tipo": f"Paquete {det.id_paquete} - Alitas",
-                                    "status": det.status,
-                                    "es_personalizado": False,
-                                    "detalles_ingredientes": None,
-                                    "tamano": None
-                                }
-                                productos.append(alita_info)
-                        else:
-                            hamburguesa = session.get(hamburguesas, det.id_hamb)
-                            if hamburguesa:
-                                hamb_info = {
-                                    "cantidad": 1,
-                                    "nombre": hamburguesa.paquete,
-                                    "tipo": f"Paquete {det.id_paquete} - Hamburguesa",
-                                    "status": det.status,
-                                    "es_personalizado": False,
-                                    "detalles_ingredientes": None,
-                                    "tamano": None
-                                }
-                                productos.append(hamb_info)
-                        
             total_items = sum(det.cantidad for det in detalles)
             
             # Calcular tiempo transcurrido
@@ -712,7 +264,6 @@ async def listar_pedidos_cocina(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
-
 
 
 
