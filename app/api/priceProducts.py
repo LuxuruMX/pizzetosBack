@@ -169,7 +169,7 @@ async def get_price_mariscos(
         id_maris=r.id_maris,
         nombre=r.nombre,
         precio=r.precio,
-        tamano=r.tamano
+        tamano=r.tamano.replace(" Camaron", "").replace("Mar", "")
     ) for r in result]
 
 @router.get("/refrescos", response_model=List[PriceRefresco])
@@ -244,7 +244,7 @@ async def get_price_pizzas(
         id_pizza=r.id_pizza,
         nombre=r.nombre,
         precio=r.precio,
-        tamano=r.tamano
+        tamano=r.tamano.replace(" Especial", "")
     ) for r in result]
 
 

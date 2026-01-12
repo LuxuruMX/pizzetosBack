@@ -357,7 +357,7 @@ def _procesar_mariscos(session: Session, det) -> Optional[Dict[str, Any]]:
         return None
     
     try:
-        tamano_obj = session.get(tamanosPizzas, producto.id_tamano) if hasattr(producto, 'id_tamano') else None
+        tamano_obj = session.get(tamanosPizzas, producto.id_tamañop) if hasattr(producto, 'id_tamañop') else None
         tamano_marisco = tamano_obj.tamano if tamano_obj else "Tamaño desconocido"
         nombre_producto = f"{producto.nombre} - {tamano_marisco}"
         tamano = tamano_marisco
