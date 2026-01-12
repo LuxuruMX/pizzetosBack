@@ -29,8 +29,9 @@ class DetalleVenta(SQLModel, table=True):
     )
     id_maris: Optional[int] = Field(default=None)
     id_refresco: Optional[int] = Field(default=None)
-    id_paquete: Optional[int] = Field(default=None)
-    detalle_paquete: Optional[str] = Field(default=None)
+    id_paquete: Optional[Dict[str, Any]] = Field(
+        sa_column=Column(JSON)
+    )
     id_magno: Optional[List[int]] = Field(
         sa_column=Column(JSON)
     )
