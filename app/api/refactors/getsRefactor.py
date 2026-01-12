@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 from sqlmodel import Session, select
 from datetime import datetime, timedelta
+import json
 
 from app.models.ventaModel import Venta
 from app.api.refactors.cachedDef import (
@@ -16,8 +17,6 @@ from app.api.refactors.cachedDef import (
     procesar_magno_cached,
     procesar_rectangular_cached,
     procesar_barra_cached,
-    procesar_paquetes_tipo_1_3_cached,
-    procesar_paquetes_tipo_2_cached
 )
 
 # Funciones auxiliares comunes
@@ -149,13 +148,18 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
         productos.append(producto_info)
         return productos  # No procesar otros tipos si es personalizado
     
-    # Procesar diferentes tipos de productos
-    if det.id_pizza and det.id_paquete != 2:
+    # Procesar paquete si existe
+    if det.id_paquete:
+        productos.extend(_procesar_paquete(session, det))
+        return productos  # Un detalle es O paquete O producto individual
+    
+    # Procesar diferentes tipos de productos individuales
+    if det.id_pizza:
         producto_info = _procesar_pizza(session, det)
         if producto_info:
             productos.append(producto_info)
     
-    if det.id_hamb and det.id_paquete != 2:
+    if det.id_hamb:
         producto_info = _procesar_hamburguesa(session, det)
         if producto_info:
             productos.append(producto_info)
@@ -165,7 +169,7 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
         if producto_info:
             productos.append(producto_info)
     
-    if det.id_alis and det.id_paquete != 2:
+    if det.id_alis:
         producto_info = _procesar_alitas(session, det)
         if producto_info:
             productos.append(producto_info)
@@ -185,7 +189,7 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
         if producto_info:
             productos.append(producto_info)
     
-    if det.id_refresco and det.id_paquete != 2:
+    if det.id_refresco:
         producto_info = _procesar_refresco(session, det)
         if producto_info:
             productos.append(producto_info)
@@ -198,9 +202,6 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
     
     if det.id_barr:
         productos.extend(_procesar_barra(session, det))
-    
-    if det.id_paquete:
-        productos.extend(_procesar_paquete(session, det))
     
     return productos
 
@@ -250,33 +251,88 @@ def _procesar_barra(session: Session, det) -> List[Dict[str, Any]]:
 
 
 def _procesar_paquete(session: Session, det) -> List[Dict[str, Any]]:
-    if det.id_paquete in [1, 3]:
-        return _procesar_paquetes_tipo_1_3(session, det)
-    elif det.id_paquete == 2:
-        return _procesar_paquetes_tipo_2(session, det)
-    else:
-        # Otros tipos de paquetes
-        return [{
-            "cantidad": det.cantidad,
-            "nombre": f"Paquete {det.id_paquete} - Sin detalle",
-            "tipo": "Paquete",
-            "status": det.status,
-            "es_personalizado": False,
-            "detalles_ingredientes": None,
-            "tamano": None
-        }]
-
-
-def _procesar_paquetes_tipo_1_3(session: Session, det) -> List[Dict[str, Any]]:
-    return procesar_paquetes_tipo_1_3_cached(
-        session, det.cantidad, det.id_paquete, det.detalle_paquete, det.status
-    )
-
-
-def _procesar_paquetes_tipo_2(session: Session, det) -> List[Dict[str, Any]]:
-    return procesar_paquetes_tipo_2_cached(
-        session, det.cantidad, det.id_paquete,
-        det.id_refresco, det.id_pizza, det.id_alis, det.id_hamb,
-        det.status
-    )
+    """Procesar un paquete de productos desde JSON.
+    
+    El paquete viene como JSON en det.id_paquete con estructura:
+    {"id_paquete": 1, "id_pizzas": [4, 8], "id_refresco": 17, "id_hamb": 1, ...}
+    """
+    if not det.id_paquete:
+        return []
+    
+    # Parsear el JSON si es string, si no es dict ya
+    try:
+        if isinstance(det.id_paquete, str):
+            paquete_data = json.loads(det.id_paquete)
+        else:
+            paquete_data = det.id_paquete
+    except (json.JSONDecodeError, TypeError):
+        return []
+    
+    productos = []
+    
+    # Procesar Pizzas
+    id_pizzas = paquete_data.get('id_pizzas', [])
+    if id_pizzas:
+        # id_pizzas puede ser lista o string
+        if isinstance(id_pizzas, str):
+            try:
+                id_pizzas = json.loads(id_pizzas)
+            except:
+                id_pizzas = [id_pizzas]
+        
+        for pid in id_pizzas:
+            pizza_info = procesar_pizza_cached(session, det.cantidad, pid, det.status)
+            if pizza_info:
+                productos.append(pizza_info)
+    
+    # Procesar Refresco
+    id_refresco = paquete_data.get('id_refresco')
+    if id_refresco:
+        refresco_info = procesar_refresco_cached(session, det.cantidad, id_refresco, det.status)
+        if refresco_info:
+            productos.append(refresco_info)
+    
+    # Procesar Hamburguesa
+    id_hamb = paquete_data.get('id_hamb')
+    if id_hamb:
+        hamb_info = procesar_hamburguesa_cached(session, det.cantidad, id_hamb, det.status)
+        if hamb_info:
+            productos.append(hamb_info)
+    
+    # Procesar Alitas
+    id_alis = paquete_data.get('id_alis')
+    if id_alis:
+        alita_info = procesar_alitas_cached(session, det.cantidad, id_alis, det.status)
+        if alita_info:
+            productos.append(alita_info)
+    
+    # Procesar Costillas
+    id_cos = paquete_data.get('id_cos')
+    if id_cos:
+        costilla_info = procesar_costilla_cached(session, det.cantidad, id_cos, det.status)
+        if costilla_info:
+            productos.append(costilla_info)
+    
+    # Procesar Spaghetti
+    id_spag = paquete_data.get('id_spag')
+    if id_spag:
+        spag_info = procesar_spaghetti_cached(session, det.cantidad, id_spag, det.status)
+        if spag_info:
+            productos.append(spag_info)
+    
+    # Procesar Papas
+    id_papa = paquete_data.get('id_papa')
+    if id_papa:
+        papa_info = procesar_papas_cached(session, det.cantidad, id_papa, det.status)
+        if papa_info:
+            productos.append(papa_info)
+    
+    # Procesar Mariscos
+    id_maris = paquete_data.get('id_maris')
+    if id_maris:
+        maris_info = procesar_mariscos_cached(session, det.cantidad, id_maris, det.status)
+        if maris_info:
+            productos.append(maris_info)
+    
+    return productos
 

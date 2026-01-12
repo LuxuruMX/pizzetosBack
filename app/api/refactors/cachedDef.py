@@ -741,3 +741,21 @@ def cleanup_expired_caches():
         _cache_rectangular, _cache_barra
     ]:
         cache.cleanup_expired()
+
+
+
+def _construir_productos_desde_cache(
+    info_paquete: Dict[str, Any],
+    cantidad_detalle: int,
+    status_detalle: str
+) -> List[Dict[str, Any]]:
+    """Construye la lista de productos a partir de la info cacheada, ajustando cantidad y status."""
+    productos = []
+    for prod in info_paquete.get('productos', []):
+        # Hacemos una copia para no alterar el objeto cacheado
+        item = prod.copy()
+        # Ajustamos cantidad y status con los del detalle actual
+        item['cantidad'] = cantidad_detalle * item.get('cantidad', 1)
+        item['status'] = status_detalle
+        productos.append(item)
+    return productos
