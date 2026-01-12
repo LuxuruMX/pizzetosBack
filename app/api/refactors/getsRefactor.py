@@ -17,6 +17,8 @@ from app.api.refactors.cachedDef import (
     procesar_magno_cached,
     procesar_rectangular_cached,
     procesar_barra_cached,
+    get_especialidad_nombre,
+    get_tamano_pizza_nombre
 )
 
 # Funciones auxiliares comunes
@@ -251,11 +253,6 @@ def _procesar_barra(session: Session, det) -> List[Dict[str, Any]]:
 
 
 def _procesar_paquete(session: Session, det) -> List[Dict[str, Any]]:
-    """Procesar un paquete de productos desde JSON.
-    
-    El paquete viene como JSON en det.id_paquete con estructura:
-    {"id_paquete": 1, "id_pizzas": [4, 8], "id_refresco": 17, "id_hamb": 1, ...}
-    """
     if not det.id_paquete:
         return []
     
@@ -267,9 +264,16 @@ def _procesar_paquete(session: Session, det) -> List[Dict[str, Any]]:
             paquete_data = det.id_paquete
     except (json.JSONDecodeError, TypeError):
         return []
-    
-    productos = []
-    
+
+    id_paquete_numero = paquete_data.get('id_paquete', 'Desconocido')
+
+    # Inicializar el diccionario de detalles
+    detalles_paquete = {
+        "paquete": id_paquete_numero
+    }
+
+    productos_internos = {}
+
     # Procesar Pizzas
     id_pizzas = paquete_data.get('id_pizzas', [])
     if id_pizzas:
@@ -279,60 +283,65 @@ def _procesar_paquete(session: Session, det) -> List[Dict[str, Any]]:
                 id_pizzas = json.loads(id_pizzas)
             except:
                 id_pizzas = [id_pizzas]
-        
+
+        nombres_pizzas = []
         for pid in id_pizzas:
-            pizza_info = procesar_pizza_cached(session, det.cantidad, pid, det.status)
-            if pizza_info:
-                productos.append(pizza_info)
-    
+            from app.models.pizzasModel import pizzas
+            pizza_db = session.get(pizzas, pid)
+            if pizza_db:
+                # Obtener el nombre de la especialidad y del tamaño
+                nombre_especialidad = get_especialidad_nombre(session, pizza_db.id_esp)
+                nombre_tamano = get_tamano_pizza_nombre(session, pizza_db.id_tamano)
+                # Formatear el nombre de la pizza como "Especialidad - Tamaño"
+                nombre_pizza = f"{nombre_especialidad} - {nombre_tamano}"
+                nombres_pizzas.append(nombre_pizza)
+            else:
+                nombres_pizzas.append(f"Pizza #{pid}")
+
+        if nombres_pizzas:
+            productos_internos["pizzas"] = nombres_pizzas
+
     # Procesar Refresco
     id_refresco = paquete_data.get('id_refresco')
     if id_refresco:
-        refresco_info = procesar_refresco_cached(session, det.cantidad, id_refresco, det.status)
-        if refresco_info:
-            productos.append(refresco_info)
-    
+        from app.models.refrescosModel import refrescos  # Ajusta la importación
+        refresco_db = session.get(refrescos, id_refresco)
+        if refresco_db:
+            productos_internos["refresco"] = refresco_db.nombre
+        else:
+            productos_internos["refresco"] = f"Refresco #{id_refresco}"
+
     # Procesar Hamburguesa
     id_hamb = paquete_data.get('id_hamb')
     if id_hamb:
-        hamb_info = procesar_hamburguesa_cached(session, det.cantidad, id_hamb, det.status)
-        if hamb_info:
-            productos.append(hamb_info)
-    
+        from app.models.hamburguesasModel import hamburguesas  # Ajusta la importación
+        hamb_db = session.get(hamburguesas, id_hamb)
+        if hamb_db:
+            productos_internos["hamburguesa"] = hamb_db.paquete
+        else:
+            productos_internos["hamburguesa"] = f"Hamburguesa #{id_hamb}"
+
     # Procesar Alitas
     id_alis = paquete_data.get('id_alis')
     if id_alis:
-        alita_info = procesar_alitas_cached(session, det.cantidad, id_alis, det.status)
-        if alita_info:
-            productos.append(alita_info)
-    
-    # Procesar Costillas
-    id_cos = paquete_data.get('id_cos')
-    if id_cos:
-        costilla_info = procesar_costilla_cached(session, det.cantidad, id_cos, det.status)
-        if costilla_info:
-            productos.append(costilla_info)
-    
-    # Procesar Spaghetti
-    id_spag = paquete_data.get('id_spag')
-    if id_spag:
-        spag_info = procesar_spaghetti_cached(session, det.cantidad, id_spag, det.status)
-        if spag_info:
-            productos.append(spag_info)
-    
-    # Procesar Papas
-    id_papa = paquete_data.get('id_papa')
-    if id_papa:
-        papa_info = procesar_papas_cached(session, det.cantidad, id_papa, det.status)
-        if papa_info:
-            productos.append(papa_info)
-    
-    # Procesar Mariscos
-    id_maris = paquete_data.get('id_maris')
-    if id_maris:
-        maris_info = procesar_mariscos_cached(session, det.cantidad, id_maris, det.status)
-        if maris_info:
-            productos.append(maris_info)
-    
-    return productos
+        from app.models.alitasModel import alitas  # Ajusta la importación
+        alita_db = session.get(alitas, id_alis)
+        if alita_db:
+            productos_internos["alitas"] = alita_db.orden
+        else:
+            productos_internos["alitas"] = f"Alitas #{id_alis}"
 
+    # Agregar todos los productos internos al detalle
+    detalles_paquete.update(productos_internos)
+
+    # Crear el producto único del paquete
+    producto_paquete = {
+        "cantidad": det.cantidad,
+        "nombre": f"Paquete {id_paquete_numero}",
+        "tipo": "Paquete",
+        "status": det.status,
+        "es_personalizado": False,
+        "detalles_ingredientes": detalles_paquete
+    }
+
+    return [producto_paquete]
