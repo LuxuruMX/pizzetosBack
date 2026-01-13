@@ -89,7 +89,7 @@ def get_tamano_pizza_nombre(session: Session, id_tamano: int) -> str:
     
     from app.models.tamanosPizzasModel import tamanosPizzas
     tamano_obj = session.get(tamanosPizzas, id_tamano)
-    result = tamano_obj.tamano if tamano_obj else f"Tamaño #{id_tamano}"
+    result = tamano_obj.tamano.replace(" Especial", "").replace(" Camaron", "").replace(" Mar", "") if tamano_obj else f"Tamaño #{id_tamano}"
     _cache_tamaños_pizzas.set(id_tamano, result)
     return result
 
