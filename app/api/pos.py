@@ -50,24 +50,6 @@ from app.api.refactors.getsRefactor import (_get_cliente_nombre,
                                              _obtener_nombre_cliente_por_tipo_servicio,
                                              _procesar_producto_por_tipo)
 
-@router.get("/pedidos-cocina/verificacion/{id_suc}")
-async def verificacion_actualizar(
-    id_suc: int,
-    session: Session = Depends(get_session),
-):
-    stmt = select(PVersion.version).where(PVersion.id_suc == id_suc)
-    result = session.exec(stmt).first()
-
-    if result is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No existe versión para la sucursal {id_suc}"
-        )
-
-    return {
-        "id_suc": id_suc,
-        "version": result
-    }
 
 @router.get("/ver-pedidos-especiales")
 async def ver_pedidos_especiales(
@@ -280,6 +262,27 @@ async def listar_pedidos_cocina(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener pedidos: {str(e)}")
+
+
+
+@router.get("/pedidos-cocina/verificacion/{id_suc}")
+async def verificacion_actualizar(
+    id_suc: int,
+    session: Session = Depends(get_session),
+):
+    stmt = select(PVersion.version).where(PVersion.id_suc == id_suc)
+    result = session.exec(stmt).first()
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No existe versión para la sucursal {id_suc}"
+        )
+
+    return {
+        "id_suc": id_suc,
+        "version": result
+    }
 
 
 
