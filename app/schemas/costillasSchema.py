@@ -15,7 +15,7 @@ class readCostillas(BaseModel):
     id_cat: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         
 class readCostillasOut(BaseModel):
     id_cos: int

@@ -14,7 +14,7 @@ class readBarra(BaseModel):
     precio: Decimal
 
     class Config:
-        orm_mode = True
+        from_attributes = True
     
 class readBarraOut(BaseModel):
     id_barr: int
@@ -23,4 +23,4 @@ class readBarraOut(BaseModel):
     precio: Decimal
 
     class Config:
-        orm_mode = True
+        from_attributes = True

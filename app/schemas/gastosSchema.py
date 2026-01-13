@@ -18,4 +18,4 @@ class readGastos(BaseModel):
     fecha: datetime
     evaluado: bool
     class Config:
-        orm_mode = True
+        from_attributes = True
