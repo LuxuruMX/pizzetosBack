@@ -25,3 +25,11 @@ class Ingredientes(SQLModel, table=True):
     __tablename__ = "Ingredientes"
     id_ingrediente: Optional[int] = Field(default=None, primary_key=True)
     ingrediente: str = Field(min_length=2, max_length=100)
+
+
+
+class PVersion(SQLModel, table=True):
+    __tablename__ = "PVersion"
+    id_pversion: Optional[int] = Field(default=None, primary_key=True)
+    id_suc: int = Field(foreign_key="Sucursal.id_suc")
+    version: int
