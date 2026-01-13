@@ -256,7 +256,6 @@ def _procesar_paquete(session: Session, det) -> List[Dict[str, Any]]:
     if not det.id_paquete:
         return []
     
-    # Parsear el JSON si es string, si no es dict ya
     try:
         if isinstance(det.id_paquete, str):
             paquete_data = json.loads(det.id_paquete)
