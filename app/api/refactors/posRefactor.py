@@ -244,6 +244,22 @@ def crear_detalles_venta(venta_request, id_venta, session: Session):
                 "ingredientes": item.ingredientes.ingredientes
             }
         
+        # Procesar id_paquete como JSON si existe
+        id_paquete_json = None
+        if item.id_paquete:
+            # El modelo ContenidoPaquete ya validó la estructura
+            id_paquete_json = {
+                "id_paquete": item.id_paquete.id_paquete,
+                "id_pizzas": item.id_paquete.id_pizzas,
+                "id_refresco": item.id_paquete.id_refresco
+            }
+            
+            # Solo agregar los campos opcionales si tienen valor
+            if item.id_paquete.id_alis is not None:
+                id_paquete_json["id_alis"] = item.id_paquete.id_alis
+            if item.id_paquete.id_hamb is not None:
+                id_paquete_json["id_hamb"] = item.id_paquete.id_hamb
+        
         nuevo_detalle = DetalleVenta(
             id_venta=id_venta,
             cantidad=item.cantidad,
@@ -257,8 +273,7 @@ def crear_detalles_venta(venta_request, id_venta, session: Session):
             id_barr=item.id_barr,
             id_maris=item.id_maris,
             id_refresco=item.id_refresco,
-            id_paquete=item.id_paquete,
-            detalle_paquete=item.detalle_paquete,
+            id_paquete=id_paquete_json,  # JSON con toda la info del paquete
             id_magno=item.id_magno,
             id_pizza=item.id_pizza,
             ingredientes=ingredientes_json

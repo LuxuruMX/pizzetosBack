@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 from sqlmodel import Session, select
 from datetime import datetime, timedelta
+import json
 
 from app.models.ventaModel import Venta
 from app.api.refactors.cachedDef import (
@@ -16,8 +17,8 @@ from app.api.refactors.cachedDef import (
     procesar_magno_cached,
     procesar_rectangular_cached,
     procesar_barra_cached,
-    procesar_paquetes_tipo_1_3_cached,
-    procesar_paquetes_tipo_2_cached
+    get_especialidad_nombre,
+    get_tamano_pizza_nombre
 )
 
 # Funciones auxiliares comunes
@@ -149,13 +150,18 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
         productos.append(producto_info)
         return productos  # No procesar otros tipos si es personalizado
     
-    # Procesar diferentes tipos de productos
-    if det.id_pizza and det.id_paquete != 2:
+    # Procesar paquete si existe
+    if det.id_paquete:
+        productos.extend(_procesar_paquete(session, det))
+        return productos  # Un detalle es O paquete O producto individual
+    
+    # Procesar diferentes tipos de productos individuales
+    if det.id_pizza:
         producto_info = _procesar_pizza(session, det)
         if producto_info:
             productos.append(producto_info)
     
-    if det.id_hamb and det.id_paquete != 2:
+    if det.id_hamb:
         producto_info = _procesar_hamburguesa(session, det)
         if producto_info:
             productos.append(producto_info)
@@ -165,7 +171,7 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
         if producto_info:
             productos.append(producto_info)
     
-    if det.id_alis and det.id_paquete != 2:
+    if det.id_alis:
         producto_info = _procesar_alitas(session, det)
         if producto_info:
             productos.append(producto_info)
@@ -185,7 +191,7 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
         if producto_info:
             productos.append(producto_info)
     
-    if det.id_refresco and det.id_paquete != 2:
+    if det.id_refresco:
         producto_info = _procesar_refresco(session, det)
         if producto_info:
             productos.append(producto_info)
@@ -198,9 +204,6 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
     
     if det.id_barr:
         productos.extend(_procesar_barra(session, det))
-    
-    if det.id_paquete:
-        productos.extend(_procesar_paquete(session, det))
     
     return productos
 
@@ -250,33 +253,94 @@ def _procesar_barra(session: Session, det) -> List[Dict[str, Any]]:
 
 
 def _procesar_paquete(session: Session, det) -> List[Dict[str, Any]]:
-    if det.id_paquete in [1, 3]:
-        return _procesar_paquetes_tipo_1_3(session, det)
-    elif det.id_paquete == 2:
-        return _procesar_paquetes_tipo_2(session, det)
-    else:
-        # Otros tipos de paquetes
-        return [{
-            "cantidad": det.cantidad,
-            "nombre": f"Paquete {det.id_paquete} - Sin detalle",
-            "tipo": "Paquete",
-            "status": det.status,
-            "es_personalizado": False,
-            "detalles_ingredientes": None,
-            "tamano": None
-        }]
+    if not det.id_paquete:
+        return []
+    
+    try:
+        if isinstance(det.id_paquete, str):
+            paquete_data = json.loads(det.id_paquete)
+        else:
+            paquete_data = det.id_paquete
+    except (json.JSONDecodeError, TypeError):
+        return []
 
+    id_paquete_numero = paquete_data.get('id_paquete', 'Desconocido')
 
-def _procesar_paquetes_tipo_1_3(session: Session, det) -> List[Dict[str, Any]]:
-    return procesar_paquetes_tipo_1_3_cached(
-        session, det.cantidad, det.id_paquete, det.detalle_paquete, det.status
-    )
+    # Inicializar el diccionario de detalles
+    detalles_paquete = {
+        "paquete": id_paquete_numero
+    }
 
+    productos_internos = {}
 
-def _procesar_paquetes_tipo_2(session: Session, det) -> List[Dict[str, Any]]:
-    return procesar_paquetes_tipo_2_cached(
-        session, det.cantidad, det.id_paquete,
-        det.id_refresco, det.id_pizza, det.id_alis, det.id_hamb,
-        det.status
-    )
+    # Procesar Pizzas
+    id_pizzas = paquete_data.get('id_pizzas', [])
+    if id_pizzas:
+        # id_pizzas puede ser lista o string
+        if isinstance(id_pizzas, str):
+            try:
+                id_pizzas = json.loads(id_pizzas)
+            except:
+                id_pizzas = [id_pizzas]
 
+        nombres_pizzas = []
+        for pid in id_pizzas:
+            from app.models.pizzasModel import pizzas
+            pizza_db = session.get(pizzas, pid)
+            if pizza_db:
+                # Obtener el nombre de la especialidad y del tamaño
+                nombre_especialidad = get_especialidad_nombre(session, pizza_db.id_esp)
+                nombre_tamano = get_tamano_pizza_nombre(session, pizza_db.id_tamano)
+                # Formatear el nombre de la pizza como "Especialidad - Tamaño"
+                nombre_pizza = f"{nombre_especialidad} - {nombre_tamano}"
+                nombres_pizzas.append(nombre_pizza)
+            else:
+                nombres_pizzas.append(f"Pizza #{pid}")
+
+        if nombres_pizzas:
+            productos_internos["pizzas"] = nombres_pizzas
+
+    # Procesar Refresco
+    id_refresco = paquete_data.get('id_refresco')
+    if id_refresco:
+        from app.models.refrescosModel import refrescos  # Ajusta la importación
+        refresco_db = session.get(refrescos, id_refresco)
+        if refresco_db:
+            productos_internos["refresco"] = refresco_db.nombre
+        else:
+            productos_internos["refresco"] = f"Refresco #{id_refresco}"
+
+    # Procesar Hamburguesa
+    id_hamb = paquete_data.get('id_hamb')
+    if id_hamb:
+        from app.models.hamburguesasModel import hamburguesas  # Ajusta la importación
+        hamb_db = session.get(hamburguesas, id_hamb)
+        if hamb_db:
+            productos_internos["hamburguesa"] = hamb_db.paquete
+        else:
+            productos_internos["hamburguesa"] = f"Hamburguesa #{id_hamb}"
+
+    # Procesar Alitas
+    id_alis = paquete_data.get('id_alis')
+    if id_alis:
+        from app.models.alitasModel import alitas  # Ajusta la importación
+        alita_db = session.get(alitas, id_alis)
+        if alita_db:
+            productos_internos["alitas"] = alita_db.orden
+        else:
+            productos_internos["alitas"] = f"Alitas #{id_alis}"
+
+    # Agregar todos los productos internos al detalle
+    detalles_paquete.update(productos_internos)
+
+    # Crear el producto único del paquete
+    producto_paquete = {
+        "cantidad": det.cantidad,
+        "nombre": f"Paquete {id_paquete_numero}",
+        "tipo": "Paquete",
+        "status": det.status,
+        "es_personalizado": False,
+        "detalles_ingredientes": detalles_paquete
+    }
+
+    return [producto_paquete]

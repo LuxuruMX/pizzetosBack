@@ -16,6 +16,46 @@ class Ingredientes(BaseModel):
         return v
 
 
+class ContenidoPaquete(BaseModel):
+    id_paquete: int
+    id_pizzas: Optional[List[int]] = None
+    id_alis: Optional[int] = None
+    id_hamb: Optional[int] = None
+    id_refresco: Optional[int] = 17
+
+    @model_validator(mode='after')
+    def validar_contenido_paquete(self):
+        # Paquete 1: Requiere exactamente 2 pizzas
+        if self.id_paquete == 1:
+            if not self.id_pizzas or len(self.id_pizzas) != 2:
+                raise ValueError("El Paquete 1 requiere exactamente 2 pizzas")
+            if self.id_alis is not None or self.id_hamb is not None:
+                raise ValueError("El Paquete 1 solo incluye pizzas y refresco")
+        
+        # Paquete 2: Requiere 1 pizza y (1 hamburguesa O 1 alitas), no ambas
+        elif self.id_paquete == 2:
+            if not self.id_pizzas or len(self.id_pizzas) != 1:
+                raise ValueError("El Paquete 2 requiere exactamente 1 pizza")
+            
+            # Debe tener hamburguesa o alitas, pero no ambas
+            if self.id_hamb is None and self.id_alis is None:
+                raise ValueError("El Paquete 2 requiere 1 hamburguesa O 1 alitas")
+            if self.id_hamb is not None and self.id_alis is not None:
+                raise ValueError("El Paquete 2 solo puede incluir hamburguesa O alitas, no ambas")
+        
+        # Paquete 3: Requiere exactamente 3 pizzas
+        elif self.id_paquete == 3:
+            if not self.id_pizzas or len(self.id_pizzas) != 3:
+                raise ValueError("El Paquete 3 requiere exactamente 3 pizzas")
+            if self.id_alis is not None or self.id_hamb is not None:
+                raise ValueError("El Paquete 3 solo incluye pizzas y refresco")
+        
+        else:
+            raise ValueError(f"ID de paquete inválido: {self.id_paquete}")
+        
+        return self
+
+
 class ItemVentaRequest(BaseModel):
     cantidad: int
     precio_unitario: Decimal
@@ -29,8 +69,7 @@ class ItemVentaRequest(BaseModel):
     id_barr: Optional[List[int]] = None
     id_maris: Optional[int] = None
     id_refresco: Optional[int] = None
-    id_paquete: Optional[int] = None
-    detalle_paquete: Optional[str] = None
+    id_paquete: Optional[ContenidoPaquete] = None
     id_magno: Optional[List[int]] = None
     id_pizza: Optional[int] = None
     
