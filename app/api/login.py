@@ -37,6 +37,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = D
     if not empleado or not verify_password(empleado.password, form_data.password):
         raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
 
+
+    if empleado.status == 0:
+        raise HTTPException(status_code=401, detail="Tu usuario está desactivado")
+
     permisos_obj = session.exec(
         select(Permisos).where(Permisos.id_cargo == empleado.id_ca)
     ).first()
