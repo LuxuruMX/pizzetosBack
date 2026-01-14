@@ -222,14 +222,10 @@ async def listar_pedidos_cocina(
 
             total_items = sum(det.cantidad for det in detalles)
             
-            # Calcular tiempo transcurrido
-            tiempo_transcurrido = datetime.now() - venta.fecha_hora
-            minutos_transcurridos = int(tiempo_transcurrido.total_seconds() / 60)
 
             pedidos_cocina.append({
                 "id_venta": venta.id_venta,
                 "fecha_hora": venta.fecha_hora,
-                "tiempo_transcurrido_minutos": minutos_transcurridos,
                 "cliente": nombre_cliente,
                 "tipo_servicio": venta.tipo_servicio,
                 "tipo_servicio_texto": {
@@ -472,8 +468,6 @@ async def obtener_detalle_pedido_cocina(
             productos.extend(_procesar_producto_por_tipo(session, det))
 
         total_items = sum(det.cantidad for det in detalles)
-        tiempo_transcurrido = datetime.now() - venta.fecha_hora
-        minutos_transcurridos = int(tiempo_transcurrido.total_seconds() / 60)
 
         # Obtener información específica para domicilio o pedido especial
         id_direccion = None
@@ -500,7 +494,6 @@ async def obtener_detalle_pedido_cocina(
         response = {
             "id_venta": venta.id_venta,
             "fecha_hora": venta.fecha_hora,
-            "tiempo_transcurrido_minutos": minutos_transcurridos,
             "cliente": nombre_cliente,
             "tipo_servicio": venta.tipo_servicio,
             "tipo_servicio_texto": {
