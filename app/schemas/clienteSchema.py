@@ -1,17 +1,17 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional, List
 
 class createDireccionNested(BaseModel):
-    calle: str = Field(min_length=5, max_length=255)
-    manzana: Optional[str] = Field(default=None, max_length=10)
-    lote: Optional[str] = Field(default=None, max_length=10)
-    colonia: Optional[str] = Field(default=None, max_length=100)
-    referencia: Optional[str] = Field(default=None, max_length=255)
+    calle: str
+    manzana: Optional[str]
+    lote: Optional[str]
+    colonia: Optional[str]
+    referencia: Optional[str]
 
 class createCliente(BaseModel):
-    nombre: str = Field(min_length=2, max_length=100)
-    apellido: str = Field(min_length=3, max_length=100)
-    telefono: int = Field(ge=10000000, le=9999999999)
+    nombre: str
+    apellido: str
+    telefono: int
     direcciones: Optional[List[createDireccionNested]] = None
     
 class readCliente(BaseModel):
@@ -50,16 +50,16 @@ class ClienteConDirecciones(BaseModel):
 
 class updateDireccion(BaseModel):
     id_dir: Optional[int] = None  # Si tiene id_dir, actualiza; si no, crea nueva
-    calle: str = Field(min_length=5, max_length=255)
-    manzana: Optional[str] = Field(default=None, max_length=10)
-    lote: Optional[str] = Field(default=None, max_length=10)
-    colonia: Optional[str] = Field(default=None, max_length=100)
-    referencia: Optional[str] = Field(default=None, max_length=255)
+    calle: str
+    manzana: Optional[str] = None
+    lote: Optional[str] = None
+    colonia: Optional[str] = None
+    referencia: Optional[str] = None
 
 class updateCliente(BaseModel):
-    nombre: Optional[str] = Field(default=None, min_length=2, max_length=100)
-    apellido: Optional[str] = Field(default=None, min_length=3, max_length=100)
-    telefono: Optional[int] = Field(default=None, ge=10000000, le=9999999999)
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    telefono: Optional[int] = None
     direcciones: Optional[List[updateDireccion]] = None
 
 
