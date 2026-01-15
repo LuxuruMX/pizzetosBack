@@ -179,10 +179,13 @@ def getClienteConDirecciones(
 def getDireccion(
     id_clie: int,
     session: Session = Depends(get_session),
-    _: None = Depends(require_any_permission("ver_venta", "crear_venta", "editar_venta"))
+    _: None = Depends(require_any_permission("ver_venta", "crear_venta"))
 ):    
-    # 2. Buscar todas las direcciones del cliente
-    statement = select(direccion).where(direccion.id_clie == id_clie)
+    statement = select(direccion).where(
+        direccion.id_clie == id_clie,
+        direccion.status == True
+    )
+
     direcciones_cliente = session.exec(statement).all()
     
     return [
@@ -323,3 +326,23 @@ def toggleClienteStatus(
     session.refresh(cliente)
     estado = "activado" if cliente.status else "desactivado"
     return {"message": f"Cliente {estado}", "id_clie": id_clie}
+
+
+@router.patch("/direccion/{id_dir}")
+def toggleDireccionStatus(
+    id_dir: int,
+    session: Session = Depends(get_session),
+    _: None = Depends(require_permission("eliminar_venta"))
+):
+    dir_obj = session.get(direccion, id_dir)
+    if not dir_obj:
+        raise HTTPException(status_code=404, detail="Dirección no encontrada")
+    # Si no existe el campo status, lo creamos en memoria (no persistente) para evitar error
+    if not hasattr(dir_obj, 'status'):
+        raise HTTPException(status_code=500, detail="El modelo Direccion no tiene campo 'status'")
+    dir_obj.status = not bool(dir_obj.status)
+    session.add(dir_obj)
+    session.commit()
+    session.refresh(dir_obj)
+    estado = "activada" if dir_obj.status else "desactivada"
+    return {"message": f"Dirección {estado}", "id_dir": id_dir}

@@ -13,3 +13,4 @@ class Direccion(SQLModel, table=True):
     lote: Optional[str]
     colonia: Optional[str]
     referencia: Optional[str] = Field(default=None)
+    status: Optional[bool] = Field(default=True)
