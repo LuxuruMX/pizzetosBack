@@ -2,9 +2,9 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 class createEmpleado(BaseModel):
-    nombre: str = Field(min_length=4, max_length=120)
-    direccion: str = Field(min_length=5, max_length=100)
-    telefono: int = Field(ge=10000000, le=9999999999)
+    nombre: str
+    direccion: str
+    telefono: int
     id_ca: int
     id_suc: int
     nickName: Optional[str] = None
