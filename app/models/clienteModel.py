@@ -8,4 +8,5 @@ class Cliente(SQLModel, table=True):
     nombre: str
     apellido: str
     telefono: int
-    
+    status: Optional[bool] = Field(default=True)
+

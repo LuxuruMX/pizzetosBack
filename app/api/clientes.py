@@ -27,6 +27,7 @@ def getClientesPOS(session: Session = Depends(get_session), _: None = Depends(re
     statement=(
         select(Cliente.id_clie, 
                func.concat(Cliente.nombre," ", Cliente.apellido).label("nombre"))
+        .where((Cliente.status == True) | (Cliente.status == 1))
         .order_by(Cliente.nombre)
     )
     results = session.exec(statement).all()
@@ -306,3 +307,18 @@ def updateClienteConDirecciones(
             detail=f"Error al actualizar cliente: {str(e)}"
         )
 
+
+@router.patch("/{id_clie}")
+def deactivateCliente(
+    id_clie: int,
+    session: Session = Depends(get_session),
+    _: None = Depends(require_permission("eliminar_venta"))
+):
+    cliente = session.get(Cliente, id_clie)
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    cliente.status = False
+    session.add(cliente)
+    session.commit()
+    session.refresh(cliente)
+    return {"message": "Cliente desactivado", "id_clie": id_clie}
