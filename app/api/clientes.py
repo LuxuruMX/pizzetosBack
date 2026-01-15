@@ -309,7 +309,7 @@ def updateClienteConDirecciones(
 
 
 @router.patch("/{id_clie}")
-def deactivateCliente(
+def toggleClienteStatus(
     id_clie: int,
     session: Session = Depends(get_session),
     _: None = Depends(require_permission("eliminar_venta"))
@@ -317,8 +317,9 @@ def deactivateCliente(
     cliente = session.get(Cliente, id_clie)
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    cliente.status = False
+    cliente.status = not bool(cliente.status)
     session.add(cliente)
     session.commit()
     session.refresh(cliente)
-    return {"message": "Cliente desactivado", "id_clie": id_clie}
+    estado = "activado" if cliente.status else "desactivado"
+    return {"message": f"Cliente {estado}", "id_clie": id_clie}
