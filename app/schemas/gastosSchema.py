@@ -12,10 +12,20 @@ class createGastos(BaseModel):
 
 class readGastos(BaseModel):
     id_gastos: int
-    sucursal: str
     descripcion: str
     precio: Decimal
     fecha: datetime
-    evaluado: bool
     class Config:
         from_attributes = True
+
+
+class readGastoNoFecha(BaseModel):
+    id_gastos: int
+    descripcion: str
+    precio: Decimal
+    class Config:
+        from_attributes = True
+
+class modGastos(BaseModel):
+    descripcion: str = Field(min_length=3, max_length=255)
+    precio: Decimal
