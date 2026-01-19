@@ -536,10 +536,6 @@ async def crear_venta(
     venta_request: VentaRequest,
     session: Session = Depends(get_session)
 ):
-    """
-    Endpoint principal para crear ventas.
-    Ahora organizado en funciones especializadas para mejor mantenibilidad.
-    """
     try:
         # Validaciones
         validar_items(venta_request)

@@ -75,6 +75,8 @@ class ItemVentaRequest(BaseModel):
     
     #datos extra para ingredientes y status
     ingredientes: Optional[Ingredientes] = None
+    queso: Optional[int] = None
+    
     status: Optional[int] = 1
     
     
