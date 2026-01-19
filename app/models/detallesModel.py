@@ -39,6 +39,7 @@ class DetalleVenta(SQLModel, table=True):
     ingredientes: Optional[Dict[str, Any]] = Field(
         sa_column=Column(JSON)
     )
+    queso: Optional[int] = Field(default=None)
     status: Optional[int] = Field(default=1)
     
     

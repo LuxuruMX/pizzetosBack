@@ -276,7 +276,8 @@ def crear_detalles_venta(venta_request, id_venta, session: Session):
             id_paquete=id_paquete_json,  # JSON con toda la info del paquete
             id_magno=item.id_magno,
             id_pizza=item.id_pizza,
-            ingredientes=ingredientes_json
+            ingredientes=ingredientes_json,
+            queso=item.queso
         )
         session.add(nuevo_detalle)
 
