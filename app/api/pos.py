@@ -546,7 +546,6 @@ async def crear_venta(
         validar_mesa(venta_request)
         validar_sucursal(venta_request, session)
         
-        # Creación de registros
         nueva_venta = crear_venta_base(venta_request, detalles_domicilio, session)
         crear_registro_domicilio(venta_request, nueva_venta.id_venta, session)
         crear_pedido_especial(venta_request, nueva_venta.id_venta, session)

@@ -209,7 +209,11 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
 
 
 def _procesar_pizza(session: Session, det) -> Optional[Dict[str, Any]]:
-    return procesar_pizza_cached(session, det.cantidad, det.id_pizza, det.status)
+    pizza = procesar_pizza_cached(session, det.cantidad, det.id_pizza, det.status)
+    # Agregar campo con_queso: True si det.queso tiene valor, False si es None o 0
+    if pizza is not None:
+        pizza["con_queso"] = bool(det.queso)
+    return pizza
 
 
 def _procesar_hamburguesa(session: Session, det) -> Optional[Dict[str, Any]]:

@@ -161,7 +161,9 @@ def procesar_pizza_cached(session: Session, det_cantidad: int, id_pizza: int, de
         cached = cached_value.copy()
         cached.update({
             "cantidad": det_cantidad,
-            "status": det_status
+            "status": det_status,
+            "tipo": "Pizza"
+            
         })
         return cached
     
@@ -181,7 +183,6 @@ def procesar_pizza_cached(session: Session, det_cantidad: int, id_pizza: int, de
     
     result = {
         "nombre": f"{nombre_especialidad} - {nombre_tamano}",
-        "tamano": nombre_tamano,
         "especialidad": nombre_especialidad
     }
     
@@ -194,7 +195,6 @@ def procesar_pizza_cached(session: Session, det_cantidad: int, id_pizza: int, de
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
-        "tamano": result["tamano"]
     }
 
 
