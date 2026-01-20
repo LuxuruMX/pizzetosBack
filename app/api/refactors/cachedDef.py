@@ -191,7 +191,6 @@ def procesar_pizza_cached(session: Session, det_cantidad: int, id_pizza: int, de
     return {
         "cantidad": det_cantidad,
         "nombre": result["nombre"],
-        "tipo": "Pizza",
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
@@ -208,7 +207,8 @@ def procesar_hamburguesa_cached(session: Session, det_cantidad: int, id_hamb: in
         cached = cached_value.copy()
         cached.update({
             "cantidad": det_cantidad,
-            "status": det_status
+            "status": det_status,
+            "tipo": "Hamburguesa"
         })
         return cached
     
@@ -225,7 +225,6 @@ def procesar_hamburguesa_cached(session: Session, det_cantidad: int, id_hamb: in
     return {
         "cantidad": det_cantidad,
         "nombre": result["nombre"],
-        "tipo": "Hamburguesa",
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
@@ -243,7 +242,8 @@ def procesar_costilla_cached(session: Session, det_cantidad: int, id_cos: int, d
         cached = cached_value.copy()
         cached.update({
             "cantidad": det_cantidad,
-            "status": det_status
+            "status": det_status,
+            "tipo": "Costillas"
         })
         return cached
     
@@ -260,7 +260,6 @@ def procesar_costilla_cached(session: Session, det_cantidad: int, id_cos: int, d
     return {
         "cantidad": det_cantidad,
         "nombre": result["nombre"],
-        "tipo": "Costilla",
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
@@ -278,7 +277,8 @@ def procesar_alitas_cached(session: Session, det_cantidad: int, id_alis: int, de
         cached = cached_value.copy()
         cached.update({
             "cantidad": det_cantidad,
-            "status": det_status
+            "status": det_status,
+            "tipo": "Alitas"
         })
         return cached
     
@@ -295,7 +295,6 @@ def procesar_alitas_cached(session: Session, det_cantidad: int, id_alis: int, de
     return {
         "cantidad": det_cantidad,
         "nombre": result["nombre"],
-        "tipo": "Alitas",
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
@@ -313,7 +312,8 @@ def procesar_spaghetti_cached(session: Session, det_cantidad: int, id_spag: int,
         cached = cached_value.copy()
         cached.update({
             "cantidad": det_cantidad,
-            "status": det_status
+            "status": det_status,
+            "tipo": "Spaghetti"
         })
         return cached
     
@@ -330,7 +330,6 @@ def procesar_spaghetti_cached(session: Session, det_cantidad: int, id_spag: int,
     return {
         "cantidad": det_cantidad,
         "nombre": result["nombre"],
-        "tipo": "Spaghetti",
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
@@ -348,7 +347,8 @@ def procesar_papas_cached(session: Session, det_cantidad: int, id_papa: int, det
         cached = cached_value.copy()
         cached.update({
             "cantidad": det_cantidad,
-            "status": det_status
+            "status": det_status,
+            "tipo": "Papas"
         })
         return cached
     
@@ -365,7 +365,6 @@ def procesar_papas_cached(session: Session, det_cantidad: int, id_papa: int, det
     return {
         "cantidad": det_cantidad,
         "nombre": result["nombre"],
-        "tipo": "Papas",
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
@@ -383,7 +382,8 @@ def procesar_mariscos_cached(session: Session, det_cantidad: int, id_maris: int,
         cached = cached_value.copy()
         cached.update({
             "cantidad": det_cantidad,
-            "status": det_status
+            "status": det_status,
+            "tipo": "Mariscos"
         })
         return cached
     
@@ -409,7 +409,6 @@ def procesar_mariscos_cached(session: Session, det_cantidad: int, id_maris: int,
     return {
         "cantidad": det_cantidad,
         "nombre": result["nombre"],
-        "tipo": "Mariscos",
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
@@ -427,7 +426,8 @@ def procesar_refresco_cached(session: Session, det_cantidad: int, id_refresco: i
         cached = cached_value.copy()
         cached.update({
             "cantidad": det_cantidad,
-            "status": det_status
+            "status": det_status,
+            "tipo": "Refresco"
         })
         return cached
     
@@ -444,7 +444,6 @@ def procesar_refresco_cached(session: Session, det_cantidad: int, id_refresco: i
     return {
         "cantidad": det_cantidad,
         "nombre": result["nombre"],
-        "tipo": "Refresco",
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
@@ -469,7 +468,8 @@ def procesar_magno_cached(session: Session, det_cantidad: int, id_magno_data: An
             new_item = item.copy()
             new_item.update({
                 "cantidad": det_cantidad,
-                "status": det_status
+                "status": det_status,
+                "tipo": "Magno"
             })
             result.append(new_item)
         return result
@@ -489,7 +489,6 @@ def procesar_magno_cached(session: Session, det_cantidad: int, id_magno_data: An
         result = [{
             "cantidad": det_cantidad,
             "nombre": "Magno",
-            "tipo": "Magno",
             "especialidades": nombres_magno,
             "status": det_status,
             "es_personalizado": False,
@@ -518,7 +517,8 @@ def procesar_rectangular_cached(session: Session, det_cantidad: int, id_rec_data
             new_item = item.copy()
             new_item.update({
                 "cantidad": det_cantidad,
-                "status": det_status
+                "status": det_status,
+                "tipo": "Rectangular"
             })
             result.append(new_item)
         return result
@@ -538,7 +538,6 @@ def procesar_rectangular_cached(session: Session, det_cantidad: int, id_rec_data
         result = [{
             "cantidad": det_cantidad,
             "nombre": "Rectangular",
-            "tipo": "Rectangular",
             "especialidades": nombres_rect,
             "status": det_status,
             "es_personalizado": False,
@@ -567,7 +566,8 @@ def procesar_barra_cached(session: Session, det_cantidad: int, id_barr_data: Any
             new_item = item.copy()
             new_item.update({
                 "cantidad": det_cantidad,
-                "status": det_status
+                "status": det_status,
+                "tipo": "Barra"
             })
             result.append(new_item)
         return result
@@ -587,7 +587,6 @@ def procesar_barra_cached(session: Session, det_cantidad: int, id_barr_data: Any
         result = [{
             "cantidad": det_cantidad,
             "nombre": "Barra",
-            "tipo": "Barra",
             "especialidades": nombres_barr,
             "status": det_status,
             "es_personalizado": False,
@@ -609,13 +608,11 @@ def procesar_paquetes_tipo_1_3_cached(session: Session, det_cantidad: int, id_pa
             new_item = item.copy()
             new_item.update({
                 "cantidad": det_cantidad,
-                "status": det_status
+                "status": det_status,
+                "tipo": f"Paquete {id_paquete}"
             })
             result.append(new_item)
         return result
-    
-    from app.models.pizzasModel import pizzas
-    from app.models.especialidadModel import especialidad
     
     productos = []
     if detalle_paquete:
@@ -634,7 +631,6 @@ def procesar_paquetes_tipo_1_3_cached(session: Session, det_cantidad: int, id_pa
                     productos.append({
                         "cantidad": 1,
                         "nombre": f"Error al cargar pizza #{id_pizza}",
-                        "tipo": f"Paquete {id_paquete}",
                         "status": det_status,
                         "es_personalizado": False,
                         "detalles_ingredientes": None,
@@ -645,7 +641,6 @@ def procesar_paquetes_tipo_1_3_cached(session: Session, det_cantidad: int, id_pa
                 productos.append({
                     "cantidad": 1,
                     "nombre": f"Error al cargar pizza del paquete",
-                    "tipo": f"Paquete {id_paquete}",
                     "status": det_status,
                     "es_personalizado": False,
                     "detalles_ingredientes": None,
@@ -655,7 +650,6 @@ def procesar_paquetes_tipo_1_3_cached(session: Session, det_cantidad: int, id_pa
         productos.append({
             "cantidad": det_cantidad,
             "nombre": f"Paquete {id_paquete} - Sin detalle",
-            "tipo": "Paquete",
             "status": det_status,
             "es_personalizado": False,
             "detalles_ingredientes": None,
@@ -678,7 +672,8 @@ def procesar_paquetes_tipo_2_cached(session: Session, det_cantidad: int, id_paqu
             new_item = item.copy()
             new_item.update({
                 "cantidad": det_cantidad,
-                "status": det_status
+                "status": det_status,
+                "tipo": f"Paquete {id_paquete}"
             })
             result.append(new_item)
         return result
