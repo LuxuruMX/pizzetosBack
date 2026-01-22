@@ -294,93 +294,20 @@ async def getDetallesEdit(
             raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
 
         # Obtener sucursal
-        sucursal = session.get(Sucursal, venta.id_suc)
-        nombre_sucursal = sucursal.nombre if sucursal else "Desconocida"
+        nombre_sucursal = _get_nombre_sucursal(session, venta.id_suc)
 
         # Obtener detalles de productos
         statement_detalles = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
         detalles = session.exec(statement_detalles).all()
 
-        # Construir lista de productos con nombres
+        # Construir lista de productos usando la función de refactor
         productos = []
         for det in detalles:
-            producto_info = {
-                "cantidad": det.cantidad,
-                "id": None,
-                "tipo": None,
-                "tamaño": None,
-                "status": det.status
-            }
+            productos.extend(_procesar_producto_por_tipo(session, det))
 
-            if det.id_pizza and not det.id_paquete:
-                from app.models.pizzasModel import pizzas
-                from app.models.tamanosPizzasModel import tamanosPizzas
-                
-                producto = session.get(pizzas, det.id_pizza)
-                if producto:
-                    tamano_obj = session.get(tamanosPizzas, producto.id_tamano)
-                    nombre_tamano = tamano_obj.tamano if tamano_obj else "Tamaño desconocido"
-
-                    producto_info["id"] = producto.id_pizza
-                    producto_info["tamaño"] = nombre_tamano
-                    producto_info["tipo"] = "id_pizza"
-                productos.append(producto_info)
-                
-            elif det.id_hamb and not det.id_paquete:
-                producto_info["id"] = det.id_hamb
-                producto_info["tipo"] = "id_hamb"
-                productos.append(producto_info)
-            
-            elif det.id_cos and not det.id_paquete:
-                producto_info["id"] = det.id_cos
-                producto_info["tipo"] = "id_cos"
-                productos.append(producto_info)
-            
-            elif det.id_alis and not det.id_paquete:
-                producto_info["id"] = det.id_alis
-                producto_info["tipo"] = "id_alis"
-                productos.append(producto_info)
-            
-            elif det.id_spag and not det.id_paquete:
-                producto_info["id"] = det.id_spag
-                producto_info["tipo"] = "id_spag"
-                productos.append(producto_info)
-            
-            elif det.id_papa and not det.id_paquete:
-                producto_info["id"] = det.id_papa
-                producto_info["tipo"] = "id_papa"
-                productos.append(producto_info)
-            
-            elif det.id_maris and not det.id_paquete:
-                producto_info["id"] = det.id_maris
-                producto_info["tipo"] = "id_maris"
-                productos.append(producto_info)
-            
-            elif det.id_refresco and not det.id_paquete:
-                from app.models.refrescosModel import refrescos
-                from app.models.tamanosRefrescosModel import tamanosRefrescos
-                producto = session.get(refrescos, det.id_refresco)
-                tamano = session.get(tamanosRefrescos, producto.id_tamano)
-                if producto:
-                    producto_info["id"] = producto.id_refresco
-                    producto_info["tipo"] = "id_refresco"
-                    producto_info["tamaño"] = tamano.tamano
-                productos.append(producto_info)
-            
-            elif det.id_magno and not det.id_paquete:
-                producto_info["id"] = det.id_magno
-                producto_info["tipo"] = "id_magno"
-                productos.append(producto_info)
-            
-            elif det.id_rec and not det.id_paquete:
-                producto_info["id"] = det.id_rec
-                producto_info["tipo"] = "id_rec"
-                productos.append(producto_info)
-            
-            elif det.id_paquete:
-                producto_info["id"] = det.id_paquete
-                producto_info["tipo"] = "id_paquete"
-                productos.append(producto_info)
+        # Calcular totales
+        total_venta, anticipo, saldo_pendiente = _calcular_totales_venta(session, id_venta)
+        total_items = _contar_productos_venta(session, id_venta)
 
         # Construir respuesta base
         response = {
@@ -389,18 +316,29 @@ async def getDetallesEdit(
             "id_suc": venta.id_suc,
             "sucursal": nombre_sucursal,
             "tipo_servicio": venta.tipo_servicio,
+            "tipo_servicio_texto": {
+                0: "Comer aquí",
+                1: "Para llevar",
+                2: "Domicilio",
+                3: "Pedido Especial"
+            }.get(venta.tipo_servicio, "Desconocido"),
             "status": venta.status,
-            "comentarios": venta.comentarios,
             "status_texto": {
                 0: "Esperando",
                 1: "Preparando",
-                2: "Completado"
+                2: "Completado",
+                5: "Cancelado"
             }.get(venta.status, "Desconocido"),
+            "comentarios": venta.comentarios,
+            "total": float(total_venta),
+            "anticipo": float(anticipo),
+            "saldo_pendiente": float(saldo_pendiente),
+            "cantidad_items": total_items,
             "productos": productos
         }
 
         # Añadir campos según tipo_servicio
-        if venta.tipo_servicio == 0:  # Comedor
+        if venta.tipo_servicio == 0:  # Comer aquí
             response["mesa"] = venta.mesa
             response["nombreClie"] = venta.nombreClie
         
@@ -408,21 +346,69 @@ async def getDetallesEdit(
             response["nombreClie"] = venta.nombreClie
             
             # Obtener pagos
-            from app.models.pagosModel import Pago
             statement_pagos = select(Pago).where(Pago.id_venta == id_venta)
             pagos = session.exec(statement_pagos).all()
             
             response["pagos"] = [
                 {
                     "id_metpago": pago.id_metpago,
-                    "monto": pago.monto
+                    "monto": float(pago.monto),
+                    "referencia": pago.referencia
                 }
                 for pago in pagos
             ]
         
-        elif venta.tipo_servicio == 2:
-            response["id_cliente"] = getattr(venta, 'id_cliente', None)
-            response["id_direccion"] = getattr(venta, 'id_direccion', None)
+        elif venta.tipo_servicio == 2:  # Domicilio
+            # Obtener información del domicilio
+            statement_domicilio = select(pDireccion).where(pDireccion.id_venta == id_venta)
+            domicilio = session.exec(statement_domicilio).first()
+            
+            if domicilio:
+                nombre_cliente = _get_cliente_nombre(session, domicilio.id_clie)
+                response["cliente"] = nombre_cliente
+                response["id_cliente"] = domicilio.id_clie
+                response["id_direccion"] = domicilio.id_dir
+                
+                # Obtener detalle de la dirección
+                detalle_direccion = _get_direccion_detalle(session, domicilio.id_dir)
+                response["detalle_direccion"] = detalle_direccion
+            
+            # Obtener pagos registrados
+            statement_pagos = select(Pago).where(Pago.id_venta == id_venta)
+            pagos = session.exec(statement_pagos).all()
+            
+            response["pagos"] = [
+                {
+                    "id_metpago": pago.id_metpago,
+                    "monto": float(pago.monto),
+                    "referencia": pago.referencia
+                }
+                for pago in pagos
+            ]
+        
+        elif venta.tipo_servicio == 3:  # Pedido Especial
+            # Obtener información del pedido especial
+            statement_pespecial = select(PEspecial).where(PEspecial.id_venta == id_venta)
+            pes = session.exec(statement_pespecial).first()
+            
+            if pes:
+                nombre_cliente = _get_cliente_nombre(session, pes.id_clie) if pes.id_clie else "Sin nombre"
+                response["cliente"] = nombre_cliente
+                response["id_cliente"] = pes.id_clie
+                response["fecha_entrega"] = pes.fecha_entrega
+            
+            # Obtener pagos registrados
+            statement_pagos = select(Pago).where(Pago.id_venta == id_venta)
+            pagos = session.exec(statement_pagos).all()
+            
+            response["pagos"] = [
+                {
+                    "id_metpago": pago.id_metpago,
+                    "monto": float(pago.monto),
+                    "referencia": pago.referencia
+                }
+                for pago in pagos
+            ]
 
         return response
 
