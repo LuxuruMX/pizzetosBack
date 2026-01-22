@@ -24,6 +24,7 @@ class readCliente(BaseModel):
 class readClientePOS(BaseModel):
     id_clie: int
     nombre: str
+    telefono: int
 
 class readDireccion(BaseModel):
     id_dir: int

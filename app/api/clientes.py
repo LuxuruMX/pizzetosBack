@@ -26,7 +26,8 @@ router=APIRouter()
 def getClientesPOS(session: Session = Depends(get_session), _: None = Depends(require_any_permission("ver_venta", "crear_venta"))):
     statement=(
         select(Cliente.id_clie, 
-               func.concat(Cliente.nombre," ", Cliente.apellido).label("nombre"))
+               func.concat(Cliente.nombre," ", Cliente.apellido).label("nombre"),
+               Cliente.telefono)
         .where((Cliente.status == True) | (Cliente.status == 1))
         .order_by(Cliente.nombre)
     )
