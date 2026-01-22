@@ -432,13 +432,20 @@ def procesar_refresco_cached(session: Session, det_cantidad: int, id_refresco: i
         return cached
     
     from app.models.refrescosModel import refrescos
+    from app.models.tamanosRefrescosModel import tamanosRefrescos
     
     producto = session.get(refrescos, id_refresco)
     if not producto:
         _cache_refrescos.set(cache_key, None)
         return None
     
-    result = {"nombre": producto.nombre}
+    # Obtener el tamaño del refresco
+    nombre_tamano = None
+    if producto.id_tamano:
+        tamano_obj = session.get(tamanosRefrescos, producto.id_tamano)
+        nombre_tamano = tamano_obj.tamano if tamano_obj else None
+    
+    result = {"nombre": producto.nombre, "tamano": nombre_tamano}
     _cache_refrescos.set(cache_key, result)
     
     return {
@@ -447,7 +454,7 @@ def procesar_refresco_cached(session: Session, det_cantidad: int, id_refresco: i
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
-        "tamano": None
+        "tamano": result["tamano"]
     }
 
 
