@@ -1193,5 +1193,94 @@ async def cancelar_venta(
         )
 
 
-
-
+@router.get("/recrea-ticket/{id_venta}")
+async def recrea_ticket(
+    id_venta: int,
+    session: Session = Depends(get_session),
+):
+    try:
+        from app.models.ventaModel import Venta
+        from app.models.detallesModel import DetalleVenta
+        
+        # Obtener venta
+        venta = session.exec(select(Venta).where(Venta.id_venta == id_venta)).first()
+        if not venta:
+            raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
+        
+        # Obtener cliente según el tipo de servicio
+        nombre_cliente = _obtener_nombre_cliente_por_tipo_servicio(session, venta)
+        nombre_sucursal = _get_nombre_sucursal(session, venta.id_suc)
+        
+        # Obtener detalles de productos
+        statement_detalles = select(DetalleVenta).where(
+            DetalleVenta.id_venta == venta.id_venta,
+            DetalleVenta.status.in_([0, 1, 2])
+        )
+        detalles = session.exec(statement_detalles).all()
+        
+        # Procesar productos con información extendida
+        productos = []
+        total_venta = Decimal("0.00")
+        
+        for det in detalles:
+            # Obtener información base del producto
+            producto_info = _procesar_producto_por_tipo(session, det)
+            
+            # Calcular precios desde DetalleVenta
+            precio_base = Decimal(str(det.precio_unitario)) if det.precio_unitario else Decimal("0.00")
+            precio_extra = Decimal(str(det.queso)) if det.queso else Decimal("0.00")
+            precio_total = precio_base + precio_extra
+            
+            # Enriquecer cada producto con precio_base y precio_extra
+            for prod in producto_info:
+                prod["precio_base"] = float(precio_base)
+                prod["precio_extra"] = float(precio_extra)
+                prod["precioUnitario"] = float(precio_total)
+                prod["conQueso"] = bool(det.queso)
+                
+                # Agregar IDs especiales si existen
+                if det.id_paquete:
+                    prod["id_paquete"] = det.id_paquete
+                if det.id_rec:
+                    prod["id_rec"] = det.id_rec
+                if det.id_barr:
+                    prod["id_barr"] = det.id_barr
+                
+                productos.append(prod)
+                total_venta += precio_total * det.cantidad
+        
+        total_items = sum(det.cantidad for det in detalles)
+        
+        return {
+            "id_venta": venta.id_venta,
+            "fecha_hora": venta.fecha_hora,
+            "cliente": nombre_cliente,
+            "tipo_servicio": venta.tipo_servicio,
+            "tipo_servicio_texto": {
+                0: "Comer aquí",
+                1: "Para llevar",
+                2: "Domicilio",
+                3: "Pedido Especial"
+            }.get(venta.tipo_servicio, "Desconocido"),
+            "mesa": venta.mesa if venta.tipo_servicio == 0 else None,
+            "sucursal": nombre_sucursal,
+            "status": venta.status,
+            "comentarios": venta.comentarios,
+            "status_texto": {
+                0: "Esperando",
+                1: "Preparando",
+                2: "Completado"
+            }.get(venta.status, "Desconocido"),
+            "cantidad_items": total_items,
+            "cantidad_productos_diferentes": len(detalles),
+            "total_venta": float(total_venta),
+            "productos": productos
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al recrear ticket: {str(e)}"
+        )

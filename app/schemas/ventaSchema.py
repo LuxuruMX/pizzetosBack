@@ -1,7 +1,7 @@
 from pydantic import BaseModel, model_validator, field_validator
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 
 class Ingredientes(BaseModel):
@@ -235,5 +235,41 @@ class RegistrarPagoRequest(BaseModel):
                 raise ValueError('Los montos de pago deben ser mayores a 0')
         
         return self
+
+
+# Schema para recrear ticket/pedido
+class ItemRecreaTicketRequest(BaseModel):
+    cantidad: int
+    nombre: str
+    tamano: Optional[str] = None
+    tipo: str  # "Pizza", "Hamburguesa", "Alitas", etc.
+    precio_base: Decimal  # Precio sin extras
+    precio_extra: Decimal = Decimal("0.00")  # Costo total de extras
+    precioUnitario: Decimal  # Precio total (Base + Extra)
+    conQueso: Optional[bool] = False
+    
+    # Campos opcionales para paquetes y productos especiales
+    id_paquete: Optional[int] = None
+    id_rec: Optional[List[int]] = None  # Para rectangular
+    id_barr: Optional[List[int]] = None  # Para barra
+
+
+class RecreaTicketRequest(BaseModel):
+    productos: List[ItemRecreaTicketRequest]
+    
+    @field_validator('productos')
+    @classmethod
+    def validar_productos(cls, v):
+        if not v or len(v) == 0:
+            raise ValueError('Debe especificar al menos un producto')
+        return v
+
+
+class RecreaTicketResponse(BaseModel):
+    status: str
+    mensaje: str
+    productos_procesados: int
+    total_calculado: Decimal
+    detalles: List[Dict]
 
 
