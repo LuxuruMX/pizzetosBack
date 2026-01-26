@@ -388,7 +388,6 @@ def procesar_mariscos_cached(session: Session, det_cantidad: int, id_maris: int,
         return cached
     
     from app.models.mariscosModel import mariscos
-    from app.models.tamanosPizzasModel import tamanosPizzas
     
     producto = session.get(mariscos, id_maris)
     if not producto:
@@ -396,8 +395,13 @@ def procesar_mariscos_cached(session: Session, det_cantidad: int, id_maris: int,
         return None
     
     try:
-        tamano_obj = session.get(tamanosPizzas, producto.id_tamañop) if hasattr(producto, 'id_tamañop') else None
-        tamano_marisco = tamano_obj.tamano if tamano_obj else "Tamaño desconocido"
+        # Usar cache para obtener el nombre del tamaño
+        tamano_marisco = None
+        if hasattr(producto, 'id_tamañop') and producto.id_tamañop:
+            tamano_marisco = get_tamano_pizza_nombre(session, producto.id_tamañop)
+        else:
+            tamano_marisco = "Tamaño desconocido"
+        
         nombre_producto = f"{producto.nombre} - {tamano_marisco}"
     except:
         nombre_producto = producto.nombre
@@ -412,7 +416,6 @@ def procesar_mariscos_cached(session: Session, det_cantidad: int, id_maris: int,
         "status": det_status,
         "es_personalizado": False,
         "detalles_ingredientes": None,
-        "tamano": result["tamano"]
     }
 
 
