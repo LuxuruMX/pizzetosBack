@@ -24,7 +24,7 @@ def validar_items(venta_request):
 
 def validar_pagos_tipo_servicio(venta_request):
     """Valida que existan pagos para tipos de servicio que los requieren"""
-    if venta_request.tipo_servicio in [1, 3]:
+    if venta_request.tipo_servicio in [1]:
         if not venta_request.pagos or len(venta_request.pagos) == 0:
             raise HTTPException(
                 status_code=400,

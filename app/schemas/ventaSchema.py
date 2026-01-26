@@ -152,7 +152,7 @@ class VentaRequest(BaseModel):
                 raise ValueError(f'Debe especificar el id_direccion cuando tipo_servicio es {self.tipo_servicio}')
 
         # Validar pagos si tipo_servicio es 1 (para llevar) o 3 (pedido especial)
-        if self.tipo_servicio in [1, 3]:
+        if self.tipo_servicio in [1]:
             if not self.pagos or len(self.pagos) == 0:
                 raise ValueError(f'Debe especificar al menos un método de pago cuando tipo_servicio es {self.tipo_servicio}')
 
