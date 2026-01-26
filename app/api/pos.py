@@ -1211,6 +1211,60 @@ async def recrea_ticket(
         nombre_cliente = _obtener_nombre_cliente_por_tipo_servicio(session, venta)
         nombre_sucursal = _get_nombre_sucursal(session, venta.id_suc)
         
+        # Obtener datos del cliente y dirección según tipo de servicio
+        id_cliente = None
+        telefono_cliente = None
+        direccion_info = {}
+        
+        if venta.tipo_servicio == 2:  # Domicilio
+            # Obtener datos de pDireccion
+            pdireccion = session.exec(
+                select(pDireccion).where(pDireccion.id_venta == id_venta)
+            ).first()
+            
+            if pdireccion:
+                id_cliente = pdireccion.id_clie
+                # Obtener teléfono del cliente
+                cliente = session.get(Cliente, id_cliente)
+                telefono_cliente = cliente.telefono if cliente else None
+                
+                # Obtener datos de Direccion
+                direccion = session.get(Direccion, pdireccion.id_dir)
+                if direccion:
+                    direccion_info = {
+                        "id_dir": direccion.id_dir,
+                        "calle": direccion.calle,
+                        "manzana": direccion.manzana,
+                        "lote": direccion.lote,
+                        "colonia": direccion.colonia,
+                        "referencia": direccion.referencia
+                    }
+        
+        elif venta.tipo_servicio == 3:  # Pedido Especial
+            # Obtener datos de PEspecial
+            pespecial = session.exec(
+                select(PEspecial).where(PEspecial.id_venta == id_venta)
+            ).first()
+            
+            if pespecial:
+                id_cliente = pespecial.id_clie
+                # Obtener teléfono del cliente
+                cliente = session.get(Cliente, id_cliente)
+                telefono_cliente = cliente.telefono if cliente else None
+                
+                # Obtener datos de Direccion
+                direccion = session.get(Direccion, pespecial.id_dir)
+                if direccion:
+                    direccion_info = {
+                        "id_dir": direccion.id_dir,
+                        "calle": direccion.calle,
+                        "manzana": direccion.manzana,
+                        "lote": direccion.lote,
+                        "colonia": direccion.colonia,
+                        "referencia": direccion.referencia,
+                        "fecha_entrega": pespecial.fecha_entrega
+                    }
+        
         # Obtener detalles de productos
         statement_detalles = select(DetalleVenta).where(
             DetalleVenta.id_venta == venta.id_venta,
@@ -1251,10 +1305,11 @@ async def recrea_ticket(
         
         total_items = sum(det.cantidad for det in detalles)
         
-        return {
+        respuesta = {
             "id_venta": venta.id_venta,
             "fecha_hora": venta.fecha_hora,
             "cliente": nombre_cliente,
+            "telefono": telefono_cliente,
             "tipo_servicio": venta.tipo_servicio,
             "tipo_servicio_texto": {
                 0: "Comer aquí",
@@ -1276,7 +1331,12 @@ async def recrea_ticket(
             "total_venta": float(total_venta),
             "productos": productos
         }
-    
+        
+        # Agregar dirección si existe
+        if direccion_info:
+            respuesta["direccion"] = direccion_info
+        
+        return respuesta    
     except HTTPException:
         raise
     except Exception as e:
