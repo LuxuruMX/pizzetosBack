@@ -288,130 +288,104 @@ async def getDetallesEdit(
     session: Session = Depends(get_session)
 ):
     try:
-        # Obtener venta
         venta = session.get(Venta, id_venta)
         if not venta:
             raise HTTPException(status_code=404, detail=f"Venta {id_venta} no encontrada")
 
-        # Obtener sucursal
-        nombre_sucursal = _get_nombre_sucursal(session, venta.id_suc)
-
-        # Obtener detalles de productos
         statement_detalles = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
         detalles = session.exec(statement_detalles).all()
 
-        # Construir lista de productos usando la función de refactor
         productos = []
         for det in detalles:
-            productos.extend(_procesar_producto_por_tipo(session, det))
+            # Determinar tipo de producto
+            tipo = None
+            id_catalogo = None
+            detalle_paquete = None
+            detalle_rectangular = None
+            tamaño = None
+            # Paquete
+            if det.id_paquete:
+                tipo = "id_paquete"
+                id_catalogo = det.id_paquete
+                detalle_paquete = det.detalle_paquete if hasattr(det, 'detalle_paquete') else None
+            # Rectangular
+            elif det.id_rec:
+                tipo = "id_rec"
+                id_catalogo = det.id_rec
+                detalle_rectangular = det.detalle_rectangular if hasattr(det, 'detalle_rectangular') else None
+            # Barra
+            elif det.id_barr:
+                tipo = "barra"
+                id_catalogo = det.id_barr
+            # Hamburguesa
+            elif det.id_hamb:
+                tipo = "id_hamb"
+                id_catalogo = det.id_hamb
+            # Alitas
+            elif det.id_alis:
+                tipo = "id_alis"
+                id_catalogo = det.id_alis
+            # Costillas
+            elif det.id_cos:
+                tipo = "id_cos"
+                id_catalogo = det.id_cos
+            # Spaguetty
+            elif det.id_spag:
+                tipo = "id_spag"
+                id_catalogo = det.id_spag
+            # Papas
+            elif det.id_papa:
+                tipo = "id_papa"
+                id_catalogo = det.id_papa
+            # Magno
+            elif det.id_magno:
+                tipo = "id_magno"
+                id_catalogo = det.id_magno
+            # Mariscos
+            elif det.id_maris:
+                tipo = "id_maris"
+                id_catalogo = det.id_maris
+            # Refresco
+            elif det.id_refresco:
+                tipo = "id_refresco"
+                id_catalogo = det.id_refresco
+            # Pizza
+            elif det.id_pizza:
+                tipo = "id_pizza"
+                id_catalogo = det.id_pizza
+                tamaño = getattr(det, 'tamano', None)
+            # Custom pizza (ejemplo)
+            elif hasattr(det, 'custom_pizza') and det.custom_pizza:
+                tipo = "custom_pizza"
+                id_catalogo = 0
+            else:
+                tipo = "otro"
+                id_catalogo = 0
 
-        # Calcular totales
-        total_venta, anticipo, saldo_pendiente = _calcular_totales_venta(session, id_venta)
-        total_items = _contar_productos_venta(session, id_venta)
+            prod = {
+                "id": id_catalogo if id_catalogo is not None else 0,
+                "tipo": tipo,
+                "cantidad": det.cantidad,
+                "status": det.status
+            }
+            if tamaño:
+                prod["tamaño"] = tamaño
+            if detalle_paquete:
+                prod["detalle_paquete"] = detalle_paquete
+            if detalle_rectangular:
+                prod["detalle_rectangular"] = detalle_rectangular
+            if hasattr(det, 'ingredientes') and det.ingredientes:
+                prod["ingredientes"] = det.ingredientes
+            if hasattr(det, 'precio_unitario') and det.precio_unitario:
+                prod["precio"] = float(det.precio_unitario)
+            if hasattr(det, 'detalle_barra') and det.detalle_barra:
+                prod["detalle_barra"] = det.detalle_barra
+            productos.append(prod)
 
-        # Construir respuesta base
-        response = {
+        return {
             "id_venta": venta.id_venta,
-            "fecha_hora": venta.fecha_hora,
-            "id_suc": venta.id_suc,
-            "sucursal": nombre_sucursal,
-            "tipo_servicio": venta.tipo_servicio,
-            "tipo_servicio_texto": {
-                0: "Comer aquí",
-                1: "Para llevar",
-                2: "Domicilio",
-                3: "Pedido Especial"
-            }.get(venta.tipo_servicio, "Desconocido"),
-            "status": venta.status,
-            "status_texto": {
-                0: "Esperando",
-                1: "Preparando",
-                2: "Completado",
-                5: "Cancelado"
-            }.get(venta.status, "Desconocido"),
-            "comentarios": venta.comentarios,
-            "total": float(total_venta),
-            "anticipo": float(anticipo),
-            "saldo_pendiente": float(saldo_pendiente),
-            "cantidad_items": total_items,
             "productos": productos
         }
-
-        # Añadir campos según tipo_servicio
-        if venta.tipo_servicio == 0:  # Comer aquí
-            response["mesa"] = venta.mesa
-            response["nombreClie"] = venta.nombreClie
-        
-        elif venta.tipo_servicio == 1:  # Para Llevar
-            response["nombreClie"] = venta.nombreClie
-            
-            # Obtener pagos
-            statement_pagos = select(Pago).where(Pago.id_venta == id_venta)
-            pagos = session.exec(statement_pagos).all()
-            
-            response["pagos"] = [
-                {
-                    "id_metpago": pago.id_metpago,
-                    "monto": float(pago.monto),
-                    "referencia": pago.referencia
-                }
-                for pago in pagos
-            ]
-        
-        elif venta.tipo_servicio == 2:  # Domicilio
-            # Obtener información del domicilio
-            statement_domicilio = select(pDireccion).where(pDireccion.id_venta == id_venta)
-            domicilio = session.exec(statement_domicilio).first()
-            
-            if domicilio:
-                nombre_cliente = _get_cliente_nombre(session, domicilio.id_clie)
-                response["cliente"] = nombre_cliente
-                response["id_cliente"] = domicilio.id_clie
-                response["id_direccion"] = domicilio.id_dir
-                
-                # Obtener detalle de la dirección
-                detalle_direccion = _get_direccion_detalle(session, domicilio.id_dir)
-                response["detalle_direccion"] = detalle_direccion
-            
-            # Obtener pagos registrados
-            statement_pagos = select(Pago).where(Pago.id_venta == id_venta)
-            pagos = session.exec(statement_pagos).all()
-            
-            response["pagos"] = [
-                {
-                    "id_metpago": pago.id_metpago,
-                    "monto": float(pago.monto),
-                    "referencia": pago.referencia
-                }
-                for pago in pagos
-            ]
-        
-        elif venta.tipo_servicio == 3:  # Pedido Especial
-            # Obtener información del pedido especial
-            statement_pespecial = select(PEspecial).where(PEspecial.id_venta == id_venta)
-            pes = session.exec(statement_pespecial).first()
-            
-            if pes:
-                nombre_cliente = _get_cliente_nombre(session, pes.id_clie) if pes.id_clie else "Sin nombre"
-                response["cliente"] = nombre_cliente
-                response["id_cliente"] = pes.id_clie
-                response["fecha_entrega"] = pes.fecha_entrega
-            
-            # Obtener pagos registrados
-            statement_pagos = select(Pago).where(Pago.id_venta == id_venta)
-            pagos = session.exec(statement_pagos).all()
-            
-            response["pagos"] = [
-                {
-                    "id_metpago": pago.id_metpago,
-                    "monto": float(pago.monto),
-                    "referencia": pago.referencia
-                }
-                for pago in pagos
-            ]
-
-        return response
-
     except HTTPException:
         raise
     except Exception as e:
