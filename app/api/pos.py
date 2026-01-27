@@ -315,7 +315,7 @@ async def getDetallesEdit(
                 detalle_rectangular = det.detalle_rectangular if hasattr(det, 'detalle_rectangular') else None
             # Barra
             elif det.id_barr:
-                tipo = "barra"
+                tipo = "id_barr"
                 id_catalogo = det.id_barr
             # Hamburguesa
             elif det.id_hamb:
@@ -353,11 +353,12 @@ async def getDetallesEdit(
             elif det.id_pizza:
                 tipo = "id_pizza"
                 id_catalogo = det.id_pizza
-                tamaño = getattr(det, 'tamano', None)
+                queso = getattr(det, 'queso', None)
             # Custom pizza (ejemplo)
-            elif hasattr(det, 'custom_pizza') and det.custom_pizza:
+            elif det.ingredientes:
                 tipo = "custom_pizza"
-                id_catalogo = 0
+                id_catalogo = det.ingredientes
+                queso = getattr(det, 'queso', None)
             else:
                 tipo = "otro"
                 id_catalogo = 0
@@ -366,6 +367,7 @@ async def getDetallesEdit(
                 "id": id_catalogo if id_catalogo is not None else 0,
                 "tipo": tipo,
                 "cantidad": det.cantidad,
+                "queso": queso if 'queso' in locals() else None,
                 "status": det.status
             }
             if tamaño:
@@ -374,12 +376,8 @@ async def getDetallesEdit(
                 prod["detalle_paquete"] = detalle_paquete
             if detalle_rectangular:
                 prod["detalle_rectangular"] = detalle_rectangular
-            if hasattr(det, 'ingredientes') and det.ingredientes:
-                prod["ingredientes"] = det.ingredientes
             if hasattr(det, 'precio_unitario') and det.precio_unitario:
                 prod["precio"] = float(det.precio_unitario)
-            if hasattr(det, 'detalle_barra') and det.detalle_barra:
-                prod["detalle_barra"] = det.detalle_barra
             productos.append(prod)
 
         return {
