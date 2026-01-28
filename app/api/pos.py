@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select, update
+from sqlmodel import Session, select, update, delete
 from decimal import Decimal
 from datetime import datetime, timedelta
 from typing import Optional
@@ -688,10 +688,12 @@ async def editar_venta(
         if hasattr(venta_request, 'status') and venta_request.status is not None:
             venta.status = venta_request.status
         
+        # Agregar la venta a la sesión para registrar los cambios
+        session.add(venta)
+        
         # Eliminar detalles existentes
-        session.query(DetalleVenta).filter(
-            DetalleVenta.id_venta == id_venta
-        ).delete()
+        stmt = delete(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
+        session.exec(stmt)
         
         # Crear los nuevos detalles
         crear_detalles_venta(venta_request, id_venta, session)
