@@ -239,8 +239,8 @@ async def listar_pedidos_cocina(
                 "status": venta.status,
                 "comentarios": venta.comentarios,
                 "status_texto": {
-                    0: "Esperando",
-                    1: "Preparando",
+                    0: "Preparando",
+                    1: "Entregado",
                     2: "Completado"
                 }.get(venta.status, "Desconocido"),
                 "cantidad_items": total_items,
