@@ -277,7 +277,8 @@ def crear_detalles_venta(venta_request, id_venta, session: Session):
             id_magno=item.id_magno,
             id_pizza=item.id_pizza,
             ingredientes=ingredientes_json,
-            queso=item.queso
+            queso=item.queso,
+            status=item.status if hasattr(item, 'status') and item.status is not None else 1
         )
         session.add(nuevo_detalle)
 
