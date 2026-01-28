@@ -684,6 +684,10 @@ async def editar_venta(
         venta.total = Decimal(str(venta_request.total))
         venta.comentarios = venta_request.comentarios
         
+        # Si la venta está completada (status=2), al editarla vuelve a esperando (status=0)
+        if venta.status == 2:
+            venta.status = 0
+        
         # Opcional: actualizar status si se envió
         if hasattr(venta_request, 'status') and venta_request.status is not None:
             venta.status = venta_request.status
