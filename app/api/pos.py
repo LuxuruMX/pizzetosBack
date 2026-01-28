@@ -353,12 +353,10 @@ async def getDetallesEdit(
             elif det.id_pizza:
                 tipo = "id_pizza"
                 id_catalogo = det.id_pizza
-                queso = getattr(det, 'queso', None)
             # Custom pizza (ejemplo)
             elif det.ingredientes:
                 tipo = "custom_pizza"
                 id_catalogo = det.ingredientes
-                queso = getattr(det, 'queso', None)
             else:
                 tipo = "otro"
                 id_catalogo = 0
@@ -367,7 +365,7 @@ async def getDetallesEdit(
                 "id": id_catalogo if id_catalogo is not None else 0,
                 "tipo": tipo,
                 "cantidad": det.cantidad,
-                "queso": queso if 'queso' in locals() else None,
+                "queso": float(det.queso) if det.queso else None,
                 "status": det.status
             }
             if tamaño:
