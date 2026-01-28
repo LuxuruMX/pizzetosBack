@@ -210,6 +210,20 @@ class VentaRequest(BaseModel):
         return self
 
     
+
+class VentaEditRequest(BaseModel):
+    total: Decimal
+    comentarios: Optional[str] = None
+    items: List[ItemVentaRequest]
+    
+    @field_validator('items')
+    @classmethod
+    def validar_items_no_vacios(cls, v):
+        if not v or len(v) == 0:
+            raise ValueError('Debe especificar al menos un item')
+        return v
+
+
 class VentaResponse(BaseModel):
     id_venta: int
     id_suc: int

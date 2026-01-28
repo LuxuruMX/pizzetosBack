@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select, update
+from sqlmodel import Session, select, update, delete
 from decimal import Decimal
 from datetime import datetime, timedelta
 from typing import Optional
@@ -12,7 +12,7 @@ from app.models.pDireccionModel import pDireccion
 from app.models.DireccionesModel import Direccion
 from app.models.pEspecialModel import PEspecial
 
-from app.schemas.ventaSchema import VentaRequest, VentaResponse, RegistrarPagoRequest
+from app.schemas.ventaSchema import VentaRequest, VentaResponse, RegistrarPagoRequest, VentaEditRequest
 
 from app.models.clienteModel import Cliente
 from app.models.sucursalModel import Sucursal
@@ -667,208 +667,58 @@ async def obtener_venta(
 
 
 @router.put("/{id_venta}")
-async def actualizar_venta(
+async def editar_venta(
     id_venta: int,
-    venta_request: VentaRequest,
+    venta_request: VentaEditRequest,  # Modelo específico
     session: Session = Depends(get_session)
 ):
-    if not venta_request.items:
-        raise HTTPException(status_code=400, detail="La venta debe contener al menos un item")
-
-    # Verificar que la venta existe
-    venta_existente = session.get(Venta, id_venta)
-    if not venta_existente:
-        raise HTTPException(status_code=404, detail=f"Venta con ID {id_venta} no encontrada")
-
-    # Validar pagos si tipo_servicio es 1
-    if venta_request.tipo_servicio == 1:
-        if not venta_request.pagos or len(venta_request.pagos) == 0:
-            raise HTTPException(
-                status_code=400, 
-                detail="Debe especificar al menos un método de pago cuando el tipo de servicio es 1 (para llevar)"
-            )
-
-    # Validar cliente solo si tipo_servicio es 2 (domicilio)
-    if venta_request.tipo_servicio == 2:
-        if not venta_request.id_cliente:
-            raise HTTPException(
-                status_code=400, 
-                detail="Debe especificar el id_cliente cuando el tipo de servicio es 2 (domicilio)"
-            )
-        
-        cliente = session.get(Cliente, venta_request.id_cliente)
-        if not cliente:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"Cliente con ID {venta_request.id_cliente} no encontrado"
-            )
-        
-        # Validar que la dirección existe
-        if not venta_request.id_direccion:
-            raise HTTPException(
-                status_code=400, 
-                detail="Debe especificar el id_direccion cuando el tipo de servicio es 2 (domicilio)"
-            )
-        
-        direccion = session.get(Direccion, venta_request.id_direccion)
-        if not direccion:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"Dirección con ID {venta_request.id_direccion} no encontrada"
-            )
-
-    # Validar mesa si tipo_servicio es 0 (comer aquí)
-    if venta_request.tipo_servicio == 0:
-        if venta_request.mesa is None:
-            raise HTTPException(
-                status_code=400, 
-                detail="Debe especificar el número de mesa cuando el tipo de servicio es 0 (comer aquí)"
-            )
-
-    # Verificar sucursal
-    sucursal = session.get(Sucursal, venta_request.id_suc)
-    if not sucursal:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Sucursal con ID {venta_request.id_suc} no encontrada"
-        )
-
     try:
-        # Actualizar datos de la venta
-        venta_existente.id_suc = venta_request.id_suc
-        venta_existente.mesa = venta_request.mesa if venta_request.tipo_servicio == 0 else None
-        venta_existente.total = Decimal(str(venta_request.total))
-        venta_existente.comentarios = venta_request.comentarios
-        venta_existente.tipo_servicio = venta_request.tipo_servicio
-        venta_existente.status = venta_request.status
-        venta_existente.nombreClie = venta_request.nombreClie
-        
-        # Actualizar o crear registro en pDireccion si es domicilio (tipo_servicio = 2)
-        if venta_request.tipo_servicio == 2:
-            # Buscar si ya existe un registro de domicilio para esta venta
-            statement_domicilio = select(pDireccion).where(pDireccion.id_venta == id_venta)
-            domicilio_existente = session.exec(statement_domicilio).first()
-            
-            if domicilio_existente:
-                # Actualizar el registro existente
-                domicilio_existente.id_clie = venta_request.id_cliente
-                domicilio_existente.id_dir = venta_request.id_direccion
-            else:
-                # Crear nuevo registro
-                nuevo_domicilio = pDireccion(
-                    id_clie=venta_request.id_cliente,
-                    id_dir=venta_request.id_direccion,
-                    id_venta=id_venta
-                )
-                session.add(nuevo_domicilio)
-        else:
-            # Si cambió el tipo de servicio y ya no es domicilio, eliminar registro de pDireccion si existe
-            statement_domicilio = select(pDireccion).where(pDireccion.id_venta == id_venta)
-            domicilio_existente = session.exec(statement_domicilio).first()
-            if domicilio_existente:
-                session.delete(domicilio_existente)
-        
-        # Manejar pagos si tipo_servicio es 1 (para llevar)
-        # Primero eliminar pagos existentes
-        statement_pagos = select(Pago).where(Pago.id_venta == id_venta)
-        pagos_existentes = session.exec(statement_pagos).all()
-        for pago in pagos_existentes:
-            session.delete(pago)
-        
-        # Crear nuevos pagos si tipo_servicio es 1
-        pagos_creados = []
-        if venta_request.tipo_servicio == 1 and venta_request.pagos:
-            for pago_request in venta_request.pagos:
-                nuevo_pago = Pago(
-                    id_venta=id_venta,
-                    id_metpago=pago_request.id_metpago,
-                    monto=Decimal(str(pago_request.monto))
-                )
-                session.add(nuevo_pago)
-                pagos_creados.append({
-                    "id_metpago": pago_request.id_metpago,
-                    "monto": float(pago_request.monto)
-                })
-        
-        session.flush()
-        
-        # Obtener todos los detalles actuales de la venta
-        statement = select(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
-        detalles_existentes = session.exec(statement).all()
-        
-        # Separar paquetes de items normales en el request
-        items_paquetes = {}  # {id_paquete: item}
-        items_normales = []
-        
-        for item in venta_request.items:
-            if item.id_paquete is not None:
-                items_paquetes[item.id_paquete] = item
-            else:
-                items_normales.append(item)
-        
-        for detalle in detalles_existentes:
-            if detalle.id_paquete is not None:
-                # Es un paquete - solo actualizar status si cambió
-                if detalle.id_paquete in items_paquetes:
-                    nuevo_status = items_paquetes[detalle.id_paquete].status
-                    if detalle.status != nuevo_status:
-                        detalle.status = nuevo_status
-                # No hacer nada si el paquete no viene en el request
-            else:
-                # No es paquete - eliminar físicamente
-                session.delete(detalle)
-        
-        session.flush()
-        
-        # Crear solo los nuevos items normales (no paquetes)
-        for item in items_normales:
-            nuevo_detalle = DetalleVenta(
-                id_venta=id_venta,
-                cantidad=item.cantidad,
-                precio_unitario=Decimal(str(item.precio_unitario)),
-                status=item.status,
-                id_hamb=item.id_hamb,
-                id_cos=item.id_cos,
-                id_alis=item.id_alis,
-                id_spag=item.id_spag,
-                id_papa=item.id_papa,
-                id_rec=item.id_rec,
-                id_barr=item.id_barr,
-                id_maris=item.id_maris,
-                id_refresco=item.id_refresco,
-                id_paquete=item.id_paquete,
-                detalle_paquete=item.detalle_paquete,
-                id_magno=item.id_magno,
-                id_pizza=item.id_pizza
+        # Verificar que la venta existe
+        venta = session.get(Venta, id_venta)
+        if not venta:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Venta con ID {id_venta} no encontrada"
             )
-            session.add(nuevo_detalle)
-
-        session.commit()
         
-        respuesta = {
+        venta.total = Decimal(str(venta_request.total))
+        venta.comentarios = venta_request.comentarios
+        
+        # Opcional: actualizar status si se envió
+        if hasattr(venta_request, 'status') and venta_request.status is not None:
+            venta.status = venta_request.status
+        
+        # Agregar la venta a la sesión para registrar los cambios
+        session.add(venta)
+        
+        # Eliminar detalles existentes
+        stmt = delete(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
+        session.exec(stmt)
+        
+        # Crear los nuevos detalles
+        crear_detalles_venta(venta_request, id_venta, session)
+        
+        # Commit
+        session.commit()
+        session.refresh(venta)
+        
+        return {
             "Mensaje": "Venta actualizada exitosamente",
-            "id_venta": id_venta,
-            "tipo_servicio": venta_existente.tipo_servicio
+            "id_venta": venta.id_venta,
+            "total": float(venta.total),
+            "comentarios": venta.comentarios,
+            "items_actualizados": len(venta_request.items)
         }
         
-        # Agregar información específica según el tipo de servicio
-        if venta_request.tipo_servicio == 0:
-            respuesta["mesa"] = venta_existente.mesa
-        elif venta_request.tipo_servicio == 1:
-            respuesta["pagos_registrados"] = pagos_creados
-            respuesta["numero_pagos"] = len(pagos_creados)
-        elif venta_request.tipo_servicio == 2:
-            respuesta["id_cliente"] = venta_request.id_cliente
-            respuesta["id_direccion"] = venta_request.id_direccion
-        
-        if venta_request.nombreClie:
-            respuesta["nombreClie"] = venta_request.nombreClie
-        
-        return respuesta
-
+    except HTTPException:
+        session.rollback()
+        raise
     except Exception as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al actualizar la venta: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al editar la venta: {str(e)}"
+        )
 
 
 
