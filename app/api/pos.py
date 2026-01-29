@@ -544,14 +544,14 @@ async def registrar_pago_venta(
             detail=f"Venta con ID {pago_request.id_venta} no encontrada"
         )
     
-    # 2. Verificar tipo de servicio (Comer aquí=0, Domicilio=2, Especial=3)
+    # 2. Verificar tipo de servicio
     if venta.tipo_servicio not in [0, 2, 3]:
         raise HTTPException(
             status_code=400,
-            detail=f"Este endpoint es solo para ventas tipo 0, 2 o 3. Esta venta es tipo {venta.tipo_servicio}"
+            detail=f"Este endpoint es solo para ventas tipo 0, 2 o 3."
         )
     
-    # 3. Obtener pagos previos para calcular acumulado
+    # 3. Calcular acumulado
     statement = select(Pago).where(Pago.id_venta == pago_request.id_venta)
     pagos_existentes = session.exec(statement).all()
     
@@ -562,17 +562,14 @@ async def registrar_pago_venta(
     try:
         # 4. Validaciones de monto
         if venta.tipo_servicio in [0, 2]:
-            # Para servicio normal, el total acumulado debe cubrir la venta exacta
-            # (o la suma nueva si no había pagos previos, logicamente igual)
             if abs(total_acumulado - venta.total) > Decimal('0.01'):
                 remaining = venta.total - monto_pagado_anteriormente
                 raise HTTPException(
                     status_code=400,
-                    detail=f'El pago debe cubrir el total. Resta por pagar: ${remaining}'
+                    detail=f'El pago debe cubrir el total. Resta: ${remaining}'
                 )
                 
         elif venta.tipo_servicio == 3:
-            # Para pedidos especiales, validar no exceder el total
             if total_acumulado > venta.total + Decimal('0.01'):
                 remaining = venta.total - monto_pagado_anteriormente
                 raise HTTPException(
@@ -580,7 +577,7 @@ async def registrar_pago_venta(
                     detail=f'El pago excede el total. Solo resta: ${remaining}'
                 )
         
-        # 5. Crear los NUEVOS registros de pago
+        # 5. Crear registros de pago
         pagos_creados = []
         for pago_data in pago_request.pagos:
             nuevo_pago = Pago(
@@ -597,10 +594,14 @@ async def registrar_pago_venta(
             }
             if pago_data.referencia:
                 pago_info["referencia"] = pago_data.referencia
-            
             pagos_creados.append(pago_info)
-        
+
+        if total_acumulado >= venta.total:
+            venta.status = 2
+            session.add(venta) # Marcamos la venta para actualizar
+            
         session.commit()
+        session.refresh(venta) # Refrescamos para asegurar que tenemos el status nuevo
         
         # 6. Responder
         saldo_pendiente = float(venta.total - total_acumulado)
@@ -614,7 +615,7 @@ async def registrar_pago_venta(
             "total_pagado": float(total_acumulado),
             "saldo_pendiente": saldo_pendiente,
             "pagos_nuevos": pagos_creados,
-            "status_actualizado": venta.status
+            "status_actualizado": venta.status # Aquí verás el 2 si se actualizó
         }
         
         if venta.tipo_servicio == 3 and saldo_pendiente > 0:
@@ -627,7 +628,7 @@ async def registrar_pago_venta(
         raise
     except Exception as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al registrar pago: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 
