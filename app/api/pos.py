@@ -680,40 +680,44 @@ async def editar_venta(
                 status_code=404,
                 detail=f"Venta con ID {id_venta} no encontrada"
             )
-        
+
         venta.total = Decimal(str(venta_request.total))
         venta.comentarios = venta_request.comentarios
-        
+
+        # Actualizar la fecha y hora al momento actual
+        venta.fecha_hora = datetime.now()
+
         # Si la venta está completada (status=2), al editarla vuelve a esperando (status=0)
         if venta.status == 2:
             venta.status = 0
-        
+
         # Opcional: actualizar status si se envió
         if hasattr(venta_request, 'status') and venta_request.status is not None:
             venta.status = venta_request.status
-        
+
         # Agregar la venta a la sesión para registrar los cambios
         session.add(venta)
-        
+
         # Eliminar detalles existentes
         stmt = delete(DetalleVenta).where(DetalleVenta.id_venta == id_venta)
         session.exec(stmt)
-        
+
         # Crear los nuevos detalles
         crear_detalles_venta(venta_request, id_venta, session)
-        
+
         # Commit
         session.commit()
         session.refresh(venta)
-        
+
         return {
             "Mensaje": "Venta actualizada exitosamente",
             "id_venta": venta.id_venta,
             "total": float(venta.total),
             "comentarios": venta.comentarios,
-            "items_actualizados": len(venta_request.items)
+            "items_actualizados": len(venta_request.items),
+            "fecha_hora_actualizada": str(venta.fecha_hora)
         }
-        
+
     except HTTPException:
         session.rollback()
         raise
