@@ -24,11 +24,26 @@ def validar_items(venta_request):
 
 def validar_pagos_tipo_servicio(venta_request):
     """Valida que existan pagos para tipos de servicio que los requieren"""
-    if venta_request.tipo_servicio in [1]:
+    # Para llevar y pedido especial requieren pagos
+    if venta_request.tipo_servicio in [1, 3]:
         if not venta_request.pagos or len(venta_request.pagos) == 0:
             raise HTTPException(
                 status_code=400,
                 detail=f"Debe especificar al menos un método de pago cuando el tipo de servicio es {venta_request.tipo_servicio}"
+            )
+    # Para domicilio, validar que los pagos sumen el total
+    elif venta_request.tipo_servicio == 2:
+        if not venta_request.pagos or len(venta_request.pagos) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Debe especificar al menos un método de pago para domicilio"
+            )
+        # Validar que el total de pagos sea igual al total de la venta
+        total_pagos = sum(Decimal(str(p.monto)) for p in venta_request.pagos)
+        if abs(total_pagos - venta_request.total) > Decimal('0.01'):
+            raise HTTPException(
+                status_code=400,
+                detail=f"El total de los pagos ({total_pagos}) debe ser igual al total de la venta ({venta_request.total})"
             )
 
 def validar_cliente_direccion(venta_request, session: Session):
@@ -65,62 +80,61 @@ def validar_cliente_direccion(venta_request, session: Session):
     return cliente, direccion
 
 def validar_domicilio(venta_request):
-    """Valida y procesa información específica de domicilio"""
+    """Valida y procesa información específica de domicilio con múltiples métodos de pago"""
     if venta_request.tipo_servicio != 2:
         return None
     
     if not venta_request.pagos or len(venta_request.pagos) == 0:
         raise HTTPException(
             status_code=400,
-            detail="Debe especificar el método de pago para domicilio"
+            detail="Debe especificar al menos un método de pago para domicilio"
         )
     
-    pago = venta_request.pagos[0]
+    # Procesar múltiples pagos
+    detalles_pago = []
+    total_efectivo = Decimal('0')
+    tiene_transferencia = False
+    tiene_tarjeta = False
     
-    # Transferencia (id_metpago == 1)
-    if pago.id_metpago == 1:
-        if not pago.referencia:
+    for pago in venta_request.pagos:
+        # Transferencia (id_metpago == 1)
+        if pago.id_metpago == 1:
+            if not pago.referencia:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Debe proporcionar la referencia de la transferencia"
+                )
+            detalles_pago.append(f"Transferencia: ${pago.monto} (Ref: {pago.referencia})")
+            tiene_transferencia = True
+        
+        # Tarjeta (id_metpago == 2)
+        elif pago.id_metpago == 2:
+            detalles_pago.append(f"Tarjeta: ${pago.monto}")
+            tiene_tarjeta = True
+        
+        # Efectivo (id_metpago == 3)
+        elif pago.id_metpago == 3:
+            total_efectivo += Decimal(str(pago.monto))
+            detalles_pago.append(f"Efectivo: ${pago.monto}")
+        
+        else:
             raise HTTPException(
                 status_code=400, 
-                detail="Debe proporcionar la referencia de la transferencia"
+                detail=f"Método de pago {pago.id_metpago} no soportado para domicilio"
             )
-        if abs(pago.monto - venta_request.total) > Decimal('0.01'):
-            raise HTTPException(
-                status_code=400, 
-                detail="El monto de la transferencia debe ser igual al total"
-            )
-        return "Pago realizado por transferencia"
     
-    # Tarjeta (id_metpago == 2)
-    elif pago.id_metpago == 2:
-        return "Llevar terminal"
+    # Construir mensaje de instrucciones
+    mensaje_instrucciones = []
+    if tiene_transferencia:
+        mensaje_instrucciones.append("Pago confirmado por transferencia")
+    if tiene_tarjeta:
+        mensaje_instrucciones.append("Llevar terminal")
+    if total_efectivo > 0:
+        mensaje_instrucciones.append(f"Llevar cambio de ${total_efectivo}")
     
-    # Efectivo (id_metpago == 3)
-    elif pago.id_metpago == 3:
-        if not pago.referencia:
-            raise HTTPException(
-                status_code=400, 
-                detail="Debe especificar con cuánto pagará el cliente"
-            )
-        try:
-            cantidad_entregada = Decimal(pago.referencia)
-        except Exception:
-            raise HTTPException(
-                status_code=400, 
-                detail="El campo 'referencia' debe ser un número válido"
-            )
-        if cantidad_entregada < venta_request.total:
-            raise HTTPException(
-                status_code=400, 
-                detail="La cantidad entregada debe ser mayor o igual al total"
-            )
-        return f"Llevar cambio de '{pago.referencia}'"
+    detalles_domicilio = " y ".join(mensaje_instrucciones) if mensaje_instrucciones else "Pago registrado"
     
-    else:
-        raise HTTPException(
-            status_code=400, 
-            detail="Método de pago no soportado para domicilio"
-        )
+    return detalles_domicilio
 
 def validar_pedido_especial(venta_request):
     """Valida información específica de pedido especial"""
@@ -182,16 +196,18 @@ def crear_registro_domicilio(venta_request, id_venta, session: Session):
     )
     session.add(nuevo_domicilio)
     
-    # Registrar pago solo si es transferencia
-    if venta_request.pagos and venta_request.pagos[0].id_metpago == 1:
-        pago = venta_request.pagos[0]
-        nuevo_pago = Pago(
-            id_venta=id_venta,
-            id_metpago=pago.id_metpago,
-            monto=Decimal(str(pago.monto)),
-            referencia=pago.referencia
-        )
-        session.add(nuevo_pago)
+    # Registrar solo pagos de transferencia (id_metpago == 1)
+    # Tarjeta (id_metpago == 2) y Efectivo (id_metpago == 3) son solo instrucciones, no se registran
+    if venta_request.pagos:
+        for pago in venta_request.pagos:
+            if pago.id_metpago == 1:  # Solo Transferencia
+                nuevo_pago = Pago(
+                    id_venta=id_venta,
+                    id_metpago=pago.id_metpago,
+                    monto=Decimal(str(pago.monto)),
+                    referencia=pago.referencia
+                )
+                session.add(nuevo_pago)
 
 def crear_pedido_especial(venta_request, id_venta, session: Session):
     """Crea el registro de pedido especial"""
@@ -303,6 +319,41 @@ def construir_respuesta(venta_request, nueva_venta, pagos_creados, detalles_domi
         respuesta["id_cliente"] = venta_request.id_cliente
         respuesta["id_direccion"] = venta_request.id_direccion
         respuesta["detalles_pago"] = detalles_domicilio
+        
+        # Agregar detalles de pagos combinados
+        if venta_request.pagos:
+            pagos_combinados = []
+            total_efectivo_pendiente = Decimal('0')
+            total_transferencia = Decimal('0')
+            total_tarjeta = Decimal('0')
+            
+            for pago in venta_request.pagos:
+                if pago.id_metpago == 1:  # Transferencia
+                    total_transferencia += Decimal(str(pago.monto))
+                    pagos_combinados.append({
+                        "metodo": "Transferencia",
+                        "monto": float(pago.monto),
+                        "referencia": pago.referencia
+                    })
+                elif pago.id_metpago == 2:  # Tarjeta
+                    total_tarjeta += Decimal(str(pago.monto))
+                    pagos_combinados.append({
+                        "metodo": "Tarjeta",
+                        "monto": float(pago.monto)
+                    })
+                elif pago.id_metpago == 3:  # Efectivo
+                    total_efectivo_pendiente += Decimal(str(pago.monto))
+                    pagos_combinados.append({
+                        "metodo": "Efectivo",
+                        "monto": float(pago.monto)
+                    })
+            
+            respuesta["pagos_detalles"] = pagos_combinados
+            respuesta["resumen_pagos"] = {
+                "transferencia": float(total_transferencia),
+                "tarjeta": float(total_tarjeta),
+                "efectivo_pendiente": float(total_efectivo_pendiente)
+            }
     
     elif venta_request.tipo_servicio == 3:
         respuesta["id_cliente"] = venta_request.id_cliente
