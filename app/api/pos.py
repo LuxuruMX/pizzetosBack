@@ -127,10 +127,10 @@ async def listar_pedidos_resumen(
 
         pedidos_resumen = []
         for venta in ventas:
-            # Verificar si tiene pagos registrados
+            # Calcular total de pagos registrados en la tabla pagos
             statement_pago = select(Pago).where(Pago.id_venta == venta.id_venta)
-            pago_existente = session.exec(statement_pago).first()
-            pagado = pago_existente is not None
+            pagos_registrados = session.exec(statement_pago).all()
+            total_pagado = sum(Decimal(str(p.monto)) for p in pagos_registrados)
 
             # Obtener cliente según el tipo de servicio
             nombre_cliente = _obtener_nombre_cliente_por_tipo_servicio(session, venta)
@@ -158,8 +158,8 @@ async def listar_pedidos_resumen(
                     5: "Cancelado"
                 }.get(venta.status, "Desconocido"),
                 "total": float(venta.total),
+                "pagado": float(total_pagado),
                 "cantidad_items": total_items,
-                "pagado": pagado,
                 "detalle": venta.detalles
             }
             pedidos_resumen.append(pedido_dict)

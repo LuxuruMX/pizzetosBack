@@ -92,7 +92,7 @@ def validar_domicilio(venta_request):
     
     # Procesar múltiples pagos
     detalles_pago = []
-    total_efectivo = Decimal('0')
+    efectivo_entregado = Decimal('0')
     tiene_transferencia = False
     tiene_tarjeta = False
     
@@ -114,7 +114,9 @@ def validar_domicilio(venta_request):
         
         # Efectivo (id_metpago == 3)
         elif pago.id_metpago == 3:
-            total_efectivo += Decimal(str(pago.monto))
+            # referencia es lo que el cliente entregó
+            if pago.referencia:
+                efectivo_entregado = Decimal(str(pago.referencia))
             detalles_pago.append(f"Efectivo: ${pago.monto}")
         
         else:
@@ -129,8 +131,8 @@ def validar_domicilio(venta_request):
         mensaje_instrucciones.append("Pago confirmado por transferencia")
     if tiene_tarjeta:
         mensaje_instrucciones.append("Llevar terminal")
-    if total_efectivo > 0:
-        mensaje_instrucciones.append(f"Llevar cambio de ${total_efectivo}")
+    if efectivo_entregado > 0:
+        mensaje_instrucciones.append(f"Llevar cambio de ${efectivo_entregado}")
     
     detalles_domicilio = " y ".join(mensaje_instrucciones) if mensaje_instrucciones else "Pago registrado"
     
