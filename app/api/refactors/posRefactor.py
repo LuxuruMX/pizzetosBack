@@ -97,8 +97,20 @@ def validar_domicilio(venta_request):
     tiene_tarjeta = False
     
     for pago in venta_request.pagos:
-        # Transferencia (id_metpago == 1)
+        # Tarjeta (id_metpago == 1)
         if pago.id_metpago == 1:
+            detalles_pago.append(f"Tarjeta: ${pago.monto}")
+            tiene_tarjeta = True
+        
+        # Efectivo (id_metpago == 2)
+        elif pago.id_metpago == 2:
+            # referencia es lo que el cliente entregó
+            if pago.referencia:
+                efectivo_entregado = Decimal(str(pago.referencia))
+            detalles_pago.append(f"Efectivo: ${pago.monto}")
+        
+        # Transferencia (id_metpago == 3)
+        elif pago.id_metpago == 3:
             if not pago.referencia:
                 raise HTTPException(
                     status_code=400, 
@@ -106,18 +118,6 @@ def validar_domicilio(venta_request):
                 )
             detalles_pago.append(f"Transferencia: ${pago.monto} (Ref: {pago.referencia})")
             tiene_transferencia = True
-        
-        # Tarjeta (id_metpago == 2)
-        elif pago.id_metpago == 2:
-            detalles_pago.append(f"Tarjeta: ${pago.monto}")
-            tiene_tarjeta = True
-        
-        # Efectivo (id_metpago == 3)
-        elif pago.id_metpago == 3:
-            # referencia es lo que el cliente entregó
-            if pago.referencia:
-                efectivo_entregado = Decimal(str(pago.referencia))
-            detalles_pago.append(f"Efectivo: ${pago.monto}")
         
         else:
             raise HTTPException(
@@ -229,26 +229,49 @@ def crear_pagos(venta_request, id_venta, session: Session):
     """Crea los registros de pago para tipos de servicio que los requieren"""
     pagos_creados = []
     
-    if venta_request.tipo_servicio not in [1, 3] or not venta_request.pagos:
+    if not venta_request.pagos:
         return pagos_creados
     
-    for pago_request in venta_request.pagos:
-        nuevo_pago = Pago(
-            id_venta=id_venta,
-            id_metpago=pago_request.id_metpago,
-            monto=Decimal(str(pago_request.monto)),
-            referencia=pago_request.referencia
-        )
-        session.add(nuevo_pago)
-        
-        pago_info = {
-            "id_metpago": pago_request.id_metpago,
-            "monto": float(pago_request.monto)
-        }
-        if pago_request.referencia:
-            pago_info["referencia"] = pago_request.referencia
-        
-        pagos_creados.append(pago_info)
+    # Para domicilio (tipo_servicio 2): solo registrar transferencias (id_metpago == 3)
+    if venta_request.tipo_servicio == 2:
+        for pago_request in venta_request.pagos:
+            if pago_request.id_metpago == 3:  # Solo transferencia
+                nuevo_pago = Pago(
+                    id_venta=id_venta,
+                    id_metpago=pago_request.id_metpago,
+                    monto=Decimal(str(pago_request.monto)),
+                    referencia=pago_request.referencia
+                )
+                session.add(nuevo_pago)
+                
+                pago_info = {
+                    "id_metpago": pago_request.id_metpago,
+                    "monto": float(pago_request.monto)
+                }
+                if pago_request.referencia:
+                    pago_info["referencia"] = pago_request.referencia
+                
+                pagos_creados.append(pago_info)
+    
+    # Para para llevar (1) y pedido especial (3): registrar todos los pagos
+    elif venta_request.tipo_servicio in [1, 3]:
+        for pago_request in venta_request.pagos:
+            nuevo_pago = Pago(
+                id_venta=id_venta,
+                id_metpago=pago_request.id_metpago,
+                monto=Decimal(str(pago_request.monto)),
+                referencia=pago_request.referencia
+            )
+            session.add(nuevo_pago)
+            
+            pago_info = {
+                "id_metpago": pago_request.id_metpago,
+                "monto": float(pago_request.monto)
+            }
+            if pago_request.referencia:
+                pago_info["referencia"] = pago_request.referencia
+            
+            pagos_creados.append(pago_info)
     
     return pagos_creados
 
