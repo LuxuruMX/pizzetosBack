@@ -128,7 +128,7 @@ async def get_price_rectangular(
     statement = (
         select(rectangular.id_rec, especialidad.nombre.label("nombre"), rectangular.precio)
         .join(especialidad, rectangular.id_esp == especialidad.id_esp)
-        .order_by(rectangular.id_rec)
+        .order_by(especialidad.nombre)
     )
     result = session.exec(statement).all()
     return [PriceRectangular(
@@ -145,7 +145,7 @@ async def get_price_barra(
     statement = (
         select(barra.id_barr, especialidad.nombre.label("nombre"), barra.precio)
         .join(especialidad, barra.id_especialidad == especialidad.id_esp)
-        .order_by(barra.id_barr)
+        .order_by(especialidad.nombre)
     )
     result = session.exec(statement).all()
     return [PriceBarra(
@@ -217,7 +217,7 @@ async def get_price_magno(
     statement = (
         select(magno.id_magno, especialidad.nombre.label("nombre"), magno.precio)
         .join(especialidad, magno.id_especialidad == especialidad.id_esp)
-        .order_by(magno.id_magno)
+        .order_by(especialidad.nombre)
     
     )
     result = session.exec(statement).all()
@@ -236,7 +236,7 @@ async def get_price_pizzas(
         select(pizzas.id_pizza, especialidad.nombre.label("nombre"), tamanosPizzas.precio, tamanosPizzas.tamano)
         .join(especialidad, pizzas.id_esp == especialidad.id_esp)
         .join(tamanosPizzas, pizzas.id_tamano == tamanosPizzas.id_tamañop)
-        .order_by(pizzas.id_pizza)
+        .order_by(especialidad.nombre)
     
     )
     result = session.exec(statement).all()
