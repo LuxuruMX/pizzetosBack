@@ -298,3 +298,15 @@ async def get_tamanos_pizzas(
         }
         for r in result
     ]
+
+
+@router.get("/especialidades", response_model=List[dict])
+async def get_especialidades(
+    session: Session = Depends(get_session)
+):
+    statement = select(especialidad.id_esp, especialidad.nombre, especialidad.descripcion).order_by(especialidad.id_esp)
+    result = session.exec(statement).all()
+
+    return [
+        {"id_esp": r.id_esp, "nombre": r.nombre, "descripcion": r.descripcion} for r in result
+    ]

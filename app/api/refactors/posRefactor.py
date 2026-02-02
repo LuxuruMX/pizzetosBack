@@ -284,8 +284,13 @@ def crear_detalles_venta(venta_request, id_venta, session: Session):
                 "tamano": item.ingredientes.tamano,
                 "ingredientes": item.ingredientes.ingredientes
             }
-        
-        # Procesar id_paquete como JSON si existe
+            
+        pizza_mitad_json = None
+        if item.pizza_mitad:
+            pizza_mitad_json = {
+                "tamano": item.pizza_mitad.tamano,
+                "ingredientes": item.pizza_mitad.ingredientes
+            }
         id_paquete_json = None
         if item.id_paquete:
             # El modelo ContenidoPaquete ya validó la estructura
@@ -317,6 +322,7 @@ def crear_detalles_venta(venta_request, id_venta, session: Session):
             id_paquete=id_paquete_json,  # JSON con toda la info del paquete
             id_magno=item.id_magno,
             id_pizza=item.id_pizza,
+            pizza_mitad=pizza_mitad_json,
             ingredientes=ingredientes_json,
             queso=item.queso,
             status=item.status if hasattr(item, 'status') and item.status is not None else 1
@@ -353,24 +359,24 @@ def construir_respuesta(venta_request, nueva_venta, pagos_creados, detalles_domi
             total_tarjeta = Decimal('0')
             
             for pago in venta_request.pagos:
-                if pago.id_metpago == 1:  # Transferencia
-                    total_transferencia += Decimal(str(pago.monto))
-                    pagos_combinados.append({
-                        "metodo": "Transferencia",
-                        "monto": float(pago.monto),
-                        "referencia": pago.referencia
-                    })
-                elif pago.id_metpago == 2:  # Tarjeta
+                if pago.id_metpago == 1:  # Tarjeta
                     total_tarjeta += Decimal(str(pago.monto))
                     pagos_combinados.append({
                         "metodo": "Tarjeta",
                         "monto": float(pago.monto)
                     })
-                elif pago.id_metpago == 3:  # Efectivo
+                elif pago.id_metpago == 2:  # Efectivo
                     total_efectivo_pendiente += Decimal(str(pago.monto))
                     pagos_combinados.append({
                         "metodo": "Efectivo",
                         "monto": float(pago.monto)
+                    })
+                elif pago.id_metpago == 3:  # Transferencia
+                    total_transferencia += Decimal(str(pago.monto))
+                    pagos_combinados.append({
+                        "metodo": "Transferencia",
+                        "monto": float(pago.monto),
+                        "referencia": pago.referencia
                     })
             
             respuesta["pagos_detalles"] = pagos_combinados

@@ -350,6 +350,10 @@ async def getDetallesEdit(
             elif det.ingredientes:
                 tipo = "custom_pizza"
                 id_catalogo = det.ingredientes
+            # Pizza mitad
+            elif det.pizza_mitad:
+                tipo = "pizza_mitad"
+                id_catalogo = det.pizza_mitad
             else:
                 tipo = "otro"
                 id_catalogo = 0
