@@ -21,6 +21,7 @@ class createDetalleVenta(BaseModel):
     detalle_paquete: Optional[str] = None
     id_magno: Optional[int] = None
     id_pizza: Optional[int] = None
+    pizza_mitad: Optional[dict] = None
     status: Optional[int] = 1
 
 class readDetalleVenta(BaseModel):
@@ -42,6 +43,7 @@ class readDetalleVenta(BaseModel):
     detalle_paquete: Optional[str] = None
     id_magno: Optional[int]
     id_pizza: Optional[int] = None
+    pizza_mitad: Optional[dict] = None
     status: Optional[int] = 1
 
 

@@ -284,8 +284,13 @@ def crear_detalles_venta(venta_request, id_venta, session: Session):
                 "tamano": item.ingredientes.tamano,
                 "ingredientes": item.ingredientes.ingredientes
             }
-        
-        # Procesar id_paquete como JSON si existe
+            
+        pizza_mitad_json = None
+        if item.pizza_mitad:
+            pizza_mitad_json = {
+                "tamano": item.pizza_mitad.tamaño,
+                "ingredientes": item.pizza_mitad.ingredientes
+            }
         id_paquete_json = None
         if item.id_paquete:
             # El modelo ContenidoPaquete ya validó la estructura
@@ -317,6 +322,7 @@ def crear_detalles_venta(venta_request, id_venta, session: Session):
             id_paquete=id_paquete_json,  # JSON con toda la info del paquete
             id_magno=item.id_magno,
             id_pizza=item.id_pizza,
+            pizza_mitad=pizza_mitad_json,
             ingredientes=ingredientes_json,
             queso=item.queso,
             status=item.status if hasattr(item, 'status') and item.status is not None else 1

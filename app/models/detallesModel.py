@@ -40,6 +40,9 @@ class DetalleVenta(SQLModel, table=True):
         sa_column=Column(JSON)
     )
     queso: Optional[int] = Field(default=None)
+    pizza_mitad: Optional[Dict[str, Any]] = Field(
+        sa_column=Column(JSON)
+    )
     status: Optional[int] = Field(default=1)
     
     
