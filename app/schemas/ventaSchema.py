@@ -127,8 +127,8 @@ class PagoVentaRequest(BaseModel):
         if self.referencia is not None and self.referencia.strip() == "":
             self.referencia = None
         
-        # Validar que la referencia sea obligatoria para métodos de pago 1 o 3
-        if self.id_metpago in [1, 3]:
+        # Validar que la referencia sea obligatoria para métodos de pago 3 (Transferencia)
+        if self.id_metpago == 3:
             if not self.referencia:
                 raise ValueError(
                     f'Debe proporcionar una referencia cuando el método de pago es {self.id_metpago}'
