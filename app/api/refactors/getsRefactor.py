@@ -133,6 +133,47 @@ def _obtener_nombre_cliente_por_tipo_servicio(session: Session, venta) -> str:
     return "Sin información"
 
 
+def _procesar_pizza_mitad(session: Session, det) -> Optional[Dict[str, Any]]:
+    """Procesar pizza mitad"""
+    try:
+        mitad_data = det.pizza_mitad
+        if isinstance(mitad_data, str):
+            mitad_data = json.loads(mitad_data)
+            
+        tamano_id = mitad_data.get("tamano")
+        ids_ingredientes = mitad_data.get("ingredientes", [])
+        
+        # Obtener nombres
+        nombre_tamano = get_tamano_pizza_nombre(session, tamano_id)
+        
+        nombres_especialidades = []
+        for id_esp in ids_ingredientes:
+            nombres_especialidades.append(get_especialidad_nombre(session, id_esp))
+            
+        return {
+            "cantidad": det.cantidad,
+            "nombre": f"Pizza Mitad - {nombre_tamano}",
+            "tipo": "Pizza Mitad",
+            "status": det.status,
+            "es_personalizado": True,
+            "tamano": nombre_tamano,
+            "detalles_ingredientes": {
+                "tamano": nombre_tamano,
+                "especialidades": nombres_especialidades,
+                "cantidad_especialidades": len(nombres_especialidades)
+            }
+        }
+    except Exception as e:
+        return {
+            "cantidad": det.cantidad,
+            "nombre": "Pizza Mitad - Error",
+            "tipo": "Pizza Mitad", 
+            "status": det.status,
+            "es_personalizado": True,
+            "detalles_ingredientes": {"error": str(e)}
+        }
+
+
 def _procesar_producto_personalizado(session: Session, det) -> Dict[str, Any]:
     """Procesar productos personalizados con ingredientes (versión cacheada)"""
     return procesar_producto_personalizado_cached(
@@ -144,7 +185,13 @@ def _procesar_producto_por_tipo(session: Session, det) -> List[Dict[str, Any]]:
     """Procesar diferentes tipos de productos en un detalle de venta"""
     productos = []
     
-    # Pizza personalizada
+    # Pizza mitad
+    if det.pizza_mitad:
+        producto_info = _procesar_pizza_mitad(session, det)
+        if producto_info:
+            productos.append(producto_info)
+        return productos
+
     if det.ingredientes:
         producto_info = _procesar_producto_personalizado(session, det)
         productos.append(producto_info)
