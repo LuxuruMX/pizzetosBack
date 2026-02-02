@@ -159,6 +159,7 @@ def _procesar_pizza_mitad(session: Session, det) -> Optional[Dict[str, Any]]:
             "tamano": nombre_tamano,
             "detalles_ingredientes": {
                 "tamano": nombre_tamano,
+                "tamano_id": tamano_id,
                 "especialidades": nombres_especialidades,
                 "cantidad_especialidades": len(nombres_especialidades)
             }
