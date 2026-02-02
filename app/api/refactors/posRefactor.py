@@ -288,7 +288,7 @@ def crear_detalles_venta(venta_request, id_venta, session: Session):
         pizza_mitad_json = None
         if item.pizza_mitad:
             pizza_mitad_json = {
-                "tamano": item.pizza_mitad.tamaño,
+                "tamano": item.pizza_mitad.tamano,
                 "ingredientes": item.pizza_mitad.ingredientes
             }
         id_paquete_json = None

@@ -17,7 +17,7 @@ class Ingredientes(BaseModel):
 
 
 class PizzaMitad(BaseModel):
-    tamaño: int
+    tamano: int
     ingredientes: List[int]
     
     @field_validator('ingredientes')
@@ -27,16 +27,6 @@ class PizzaMitad(BaseModel):
             raise ValueError('Debe seleccionar exactamente 2 ingredientes para pizza mitad')
         return v
 
-class PizzaMitad(BaseModel):
-    tamaño: int
-    ingredientes: List[int]
-    
-    @field_validator('ingredientes')
-    @classmethod
-    def validar_ingredientes(cls, v):
-        if not v or len(v) != 2:
-            raise ValueError('Debe seleccionar exactamente 2 ingredientes para pizza mitad')
-        return v
 
 class ContenidoPaquete(BaseModel):
     id_paquete: int
