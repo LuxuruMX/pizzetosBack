@@ -19,13 +19,6 @@ from app.models.sucursalModel import Sucursal
 
 router = APIRouter()
 
-
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
-from datetime import datetime, timedelta
-
-
 from app.api.refactors.posRefactor import (validar_cliente_direccion,
                                  crear_detalles_venta,
                                  validar_items,
