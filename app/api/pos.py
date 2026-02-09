@@ -57,8 +57,7 @@ async def ver_pedidos_especiales(
         statement = select(PEspecial).order_by(PEspecial.fecha_creacion.asc())
 
         # Filtrar por sucursal
-        if id_suc != 1:
-            statement = statement.join(Venta, PEspecial.id_venta == Venta.id_venta).where(Venta.id_suc == id_suc)
+        statement = statement.join(Venta, PEspecial.id_venta == Venta.id_venta).where(Venta.id_suc == id_suc)
 
         # Filtrar por status
         if status is None:
